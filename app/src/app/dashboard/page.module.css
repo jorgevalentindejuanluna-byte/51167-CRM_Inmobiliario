@@ -1,0 +1,294 @@
+.dashboard {
+  animation: fadeIn 0.3s ease;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-md);
+}
+
+/* ── KPI Grid ── */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-gutter);
+  margin-bottom: var(--space-md);
+}
+
+.kpiCard {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+.kpiIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.kpiIcon .material-symbols-outlined {
+  font-size: 22px;
+}
+
+.kpiValue {
+  font-family: var(--font-headline);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-on-surface);
+  line-height: 1.1;
+  margin: 4px 0 2px;
+}
+
+.kpiTrend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-on-surface-variant);
+}
+
+/* ── Main Grid ── */
+.mainGrid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: var(--space-gutter);
+}
+
+.leftColumn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-gutter);
+}
+
+.rightColumn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-gutter);
+}
+
+/* ── Card header ── */
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+}
+
+.cardHeader h2 {
+  flex: 1;
+}
+
+/* ── AI Recommendations ── */
+.aiCard {
+  border-color: rgba(242, 190, 140, 0.15);
+}
+
+.aiList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.aiItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-high);
+  transition: background var(--transition-fast);
+}
+
+.aiItem:hover {
+  background: var(--color-surface-highest);
+}
+
+.aiItemInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.aiItemName {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-on-surface);
+}
+
+.aiItemAction {
+  display: flex;
+  gap: 2px;
+}
+
+/* ── Alerts (regla 14.2) ── */
+.alertList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.alertItem {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.alertDot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+
+.alertDotError {
+  background: var(--color-error);
+  box-shadow: 0 0 8px rgba(255, 180, 171, 0.4);
+}
+
+.alertDotWarning {
+  background: var(--color-primary);
+}
+
+.alertTitle {
+  display: block;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-on-surface);
+  margin-bottom: 2px;
+}
+
+/* ── Lead Origins ── */
+.originList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.originItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.originLabel {
+  width: 100px;
+  font-size: 13px;
+  color: var(--color-on-surface-variant);
+  flex-shrink: 0;
+}
+
+.originBar {
+  flex: 1;
+  height: 6px;
+  background: var(--color-surface-highest);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.originBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary-container), var(--color-primary));
+  border-radius: var(--radius-full);
+  transition: width 0.5s ease;
+  min-width: 4px;
+}
+
+.originCount {
+  width: 24px;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-on-surface);
+}
+
+/* ── Agent Performance ── */
+.agentList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.agentItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.agentInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.agentName {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-on-surface);
+}
+
+.agentScore {
+  flex-shrink: 0;
+}
+
+/* ── Activity Feed ── */
+.activityList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.activityItem {
+  display: flex;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(80, 69, 59, 0.3);
+}
+
+.activityItem:last-child {
+  border-bottom: none;
+}
+
+.activityIcon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-high);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--color-on-surface-variant);
+}
+
+.activityContent {
+  flex: 1;
+}
+
+.activityContent p {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1200px) {
+  .kpiGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .mainGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}

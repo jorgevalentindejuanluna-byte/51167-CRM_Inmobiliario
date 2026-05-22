@@ -1,0 +1,86 @@
+.container {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.padWrapper {
+  background: var(--color-background);
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-primary-light);
+  margin-bottom: 1.5rem;
+}
+
+.padHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+
+.signatureList {
+  margin-top: 1rem;
+}
+
+.empty {
+  text-align: center;
+  padding: 1rem;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sigItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.sigInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sigInfo strong {
+  font-size: 0.875rem;
+  display: block;
+}
+
+.statusBadge {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.125rem 0.5rem;
+  border-radius: 100px;
+}
+
+.statusBadge.borrador { background: #f3f4f6; color: #374151; }
+.statusBadge.enviado { background: #eff6ff; color: #1d4ed8; }
+.statusBadge.firmado { background: #f0fdf4; color: #15803d; }
+.statusBadge.rechazado { background: #fef2f2; color: #b91c1c; }

@@ -2,15 +2,13 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import { useLeads, useUsers, saveLocalMock } from '@/lib/use-data';
+import { useLeads, saveLocalMock } from '@/lib/use-data';
 import { useAuth } from '@/lib/auth-context';
 import LeadsKanban from '@/components/leads/LeadsKanban';
 import { updateLead } from '@/app/actions/leads';
 import {
   LEAD_ESTADO_LABELS,
-  LEAD_ESTADO_COLORS,
   LEAD_TEMP_LABELS,
-  LEAD_ORIGEN_LABELS,
   LEAD_TIPO_LABELS,
 } from '@/lib/constants';
 import type { LeadEstado, LeadTemperatura, LeadTipo } from '@/lib/models/types';
@@ -18,15 +16,13 @@ import styles from './page.module.css';
 
 export function LeadsClient() {
   const { token } = useAuth();
-  const { data: leads, loading: leadsLoading, source } = useLeads();
-  const { data: users } = useUsers();
+  const { data: leads, source } = useLeads();
 
   const [filterEstado, setFilterEstado] = useState<LeadEstado | ''>('');
   const [filterTemp, setFilterTemp] = useState<LeadTemperatura | ''>('');
   const [filterTipo, setFilterTipo] = useState<LeadTipo | ''>('');
   const [searchQuery, setSearchQuery] = useState('');
   
-  const [viewMode, setViewMode] = useState<'table' | 'kanban'>('kanban');
   const [localLeads, setLocalLeads] = useState<Lead[]>([]);
 
   useEffect(() => {
@@ -55,12 +51,6 @@ export function LeadsClient() {
   const aiPriorityLeads = localLeads.filter(
     (l) => l.temperatura === 'caliente' && l.score >= 75
   ).slice(0, 3);
-
-  const getAgentName = (agentId?: string) => {
-    if (!agentId) return '—';
-    const agent = users.find((u) => u.id === agentId);
-    return agent ? `${agent.nombre} ${agent.apellidos.split(' ')[0]}` : '—';
-  };
 
   const handleLeadMoved = async (leadId: string, newEstado: LeadEstado) => {
     // Optimistic Update
@@ -203,114 +193,12 @@ export function LeadsClient() {
             </button>
           )}
         </div>
-        <div style={{ display: 'flex', gap: '4px', background: 'var(--color-surface-variant)', padding: '4px', borderRadius: '8px' }}>
-          <button 
-            className={`btn btn--icon ${viewMode === 'table' ? 'btn--primary' : 'btn--ghost'}`} 
-            onClick={() => setViewMode('table')}
-            title="Vista de Tabla"
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>table_chart</span>
-          </button>
-          <button 
-            className={`btn btn--icon ${viewMode === 'kanban' ? 'btn--primary' : 'btn--ghost'}`} 
-            onClick={() => setViewMode('kanban')}
-            title="Vista de Tablero"
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>view_kanban</span>
-          </button>
-        </div>
+
       </div>
 
-      {/* Vistas (Tabla / Kanban) */}
-      {viewMode === 'kanban' ? (
-        <div style={{ marginTop: '1rem' }}>
-          <LeadsKanban leads={filteredLeads} onLeadMoved={handleLeadMoved} />
-        </div>
-      ) : (
-      <div className="table-container">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Lead</th>
-              <th>Tipo</th>
-              <th>Origen</th>
-              <th>Temperatura</th>
-              <th>Score IA</th>
-              <th>Estado</th>
-              <th>Agente</th>
-              <th>Próxima acción</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredLeads.map((lead, index) => (
-              <tr key={lead.id} className="animate-fade-in" style={{ animationDelay: `${index * 30}ms` }}>
-                <td>
-                  <Link href={`/leads/${lead.id}`} className={styles.leadCell}>
-                    <div className="avatar">{lead.nombre[0]}{lead.apellidos[0]}</div>
-                    <div>
-                      <strong className={styles.leadName}>{lead.nombre} {lead.apellidos}</strong>
-                      <span className="text-helper text-muted">{lead.email || lead.telefono}</span>
-                    </div>
-                  </Link>
-                </td>
-                <td>
-                  <span className="badge badge--neutral">{LEAD_TIPO_LABELS[lead.tipo_lead]}</span>
-                </td>
-                <td>
-                  <span className="text-helper">{LEAD_ORIGEN_LABELS[lead.origen]}</span>
-                </td>
-                <td>
-                  <span className={styles.tempCell}>
-                    <span className={`temp-dot temp-dot--${lead.temperatura}`} />
-                    {LEAD_TEMP_LABELS[lead.temperatura]}
-                  </span>
-                </td>
-                <td>
-                  <div className={styles.scoreCell}>
-                    <span className={styles.scoreValue} data-score={lead.score >= 80 ? 'high' : lead.score >= 50 ? 'medium' : 'low'}>
-                      {lead.score}
-                    </span>
-                    <div className="score-bar" style={{ width: '50px' }}>
-                      <div
-                        className={`score-bar__fill ${lead.score >= 80 ? 'score-bar__fill--high' : lead.score >= 50 ? 'score-bar__fill--medium' : 'score-bar__fill--low'}`}
-                        style={{ width: `${lead.score}%` }}
-                      />
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <span className={`badge badge--${LEAD_ESTADO_COLORS[lead.estado]}`}>
-                    {LEAD_ESTADO_LABELS[lead.estado]}
-                  </span>
-                </td>
-                <td>
-                  <span className="text-helper">{getAgentName(lead.agente_asignado)}</span>
-                </td>
-                <td>
-                  <span className="text-helper text-muted" style={{ maxWidth: '180px', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {lead.proxima_accion || '—'}
-                  </span>
-                </td>
-                <td>
-                  <div className={styles.actionBtns}>
-                    <button className="btn btn--icon btn--ghost" title="WhatsApp">
-                      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>chat</span>
-                    </button>
-                    <button className="btn btn--icon btn--ghost" title="Llamar">
-                      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>phone</span>
-                    </button>
-                    <button className="btn btn--icon btn--ghost" title="Email">
-                      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>mail</span>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div style={{ marginTop: '1rem' }}>
+        <LeadsKanban leads={filteredLeads} onLeadMoved={handleLeadMoved} />
       </div>
-      )}
 
       {filteredLeads.length === 0 && (
         <div className="empty-state">

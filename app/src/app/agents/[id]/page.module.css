@@ -155,3 +155,68 @@
 .dl dd {
   color: var(--color-on-surface);
 }
+
+/* ── Activity Timeline ── */
+.activityList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.activityItem {
+  display: flex;
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid var(--color-outline-variant);
+}
+
+.activityItem:last-child {
+  border-bottom: none;
+}
+
+.activityIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-variant);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.activityIcon .material-symbols-outlined {
+  font-size: 18px;
+  color: var(--color-primary);
+}
+
+.activityBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.activityHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: 0.25rem;
+}
+
+.activityText {
+  font-size: 0.85rem;
+  color: var(--color-on-surface);
+  margin: 0.15rem 0;
+  line-height: 1.4;
+}
+
+.activityNextStep {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  padding: 0.35rem 0.6rem;
+  background: var(--color-surface-variant);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 500;
+}

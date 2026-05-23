@@ -188,3 +188,109 @@ export const AGENT_RELACION_LABELS: Record<string, string> = {
   freelance: 'Freelance',
   colaborador_externo: 'Colaborador Externo',
 };
+
+// ── Actividad de agente ──
+export const ACTIVITY_TIPO_LABELS: Record<string, string> = {
+  llamada: 'Llamada',
+  email: 'Email',
+  whatsapp: 'WhatsApp',
+  visita: 'Visita',
+  reunion: 'Reunión',
+  captacion: 'Captación',
+  valoracion: 'Valoración',
+  oferta: 'Oferta',
+  reserva: 'Reserva',
+  seguimiento: 'Seguimiento',
+  nota: 'Nota interna',
+  tarea: 'Tarea',
+};
+
+export const ACTIVITY_TIPO_ICONS: Record<string, string> = {
+  llamada: 'phone',
+  email: 'mail',
+  whatsapp: 'chat',
+  visita: 'home_work',
+  reunion: 'groups',
+  captacion: 'add_business',
+  valoracion: 'price_change',
+  oferta: 'request_quote',
+  reserva: 'book_online',
+  seguimiento: 'track_changes',
+  nota: 'note',
+  tarea: 'task_alt',
+};
+
+export const ACTIVITY_PRIORIDAD_LABELS: Record<string, string> = {
+  baja: 'Baja',
+  normal: 'Normal',
+  alta: 'Alta',
+  urgente: 'Urgente',
+};
+
+// ── Comisiones ──
+export const COMMISSION_TIPO_LABELS: Record<string, string> = {
+  captacion: 'Captación',
+  venta: 'Venta',
+  alquiler: 'Alquiler',
+  exclusiva: 'Exclusiva',
+  colaboracion: 'Colaboración',
+  compartida: 'Compartida',
+  objetivo: 'Objetivo',
+  bonus: 'Bonus',
+};
+
+export const COMMISSION_ESTADO_LABELS: Record<string, string> = {
+  calculada: 'Calculada',
+  pendiente: 'Pendiente',
+  validada: 'Validada',
+  aprobada: 'Aprobada',
+  liquidada: 'Liquidada',
+  retenida: 'Retenida',
+  anulada: 'Anulada',
+};
+
+export const COMMISSION_ESTADO_COLORS: Record<string, string> = {
+  calculada: 'info',
+  pendiente: 'warning',
+  validada: 'info',
+  aprobada: 'success',
+  liquidada: 'success',
+  retenida: 'error',
+  anulada: 'error',
+};
+
+// ── Asignaciones ──
+export const ASIGNACION_TIPO_LABELS: Record<string, string> = {
+  principal: 'Principal',
+  secundario: 'Secundario',
+  captador: 'Captador',
+  comercial_venta: 'Comercial Venta',
+  comercial_alquiler: 'Comercial Alquiler',
+};
+
+// ── Cliente tipos ──
+export const CLIENTE_TIPO_LABELS: Record<string, string> = {
+  comprador: 'Comprador',
+  vendedor: 'Vendedor',
+  inquilino: 'Inquilino',
+  inversor: 'Inversor',
+  lead: 'Lead',
+  propietario: 'Propietario',
+};
+
+// ── Resultados de actividad ──
+export const ACTIVITY_RESULTADO_LABELS: Record<string, string> = {
+  contactado: 'Contactado',
+  no_contesta: 'No contesta',
+  interesado: 'Interesado',
+  no_interesado: 'No interesado',
+  solicita_informacion: 'Solicita información',
+  solicita_visita: 'Solicita visita',
+  pendiente_decision: 'Pendiente de decisión',
+  oferta_presentada: 'Oferta presentada',
+  oferta_aceptada: 'Oferta aceptada',
+  oferta_rechazada: 'Oferta rechazada',
+  cliente_perdido: 'Cliente perdido',
+  operacion_cerrada: 'Operación cerrada',
+  seguimiento_futuro: 'Seguimiento futuro',
+};

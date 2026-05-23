@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabaseSelect } from './supabase';
 import { useAuth } from './auth-context';
-import type { Lead, Property, Operation, User, CRMDocument, CRMSignature, Agent } from './models/types';
+import type { Lead, Property, Operation, User, CRMDocument, CRMSignature, Agent, AgentActivity, AgentPropertyAssignment, AgentClientAssignment, AgentCommission } from './models/types';
 import {
   MOCK_LEADS,
   MOCK_PROPERTIES,
@@ -14,6 +14,10 @@ import {
   toUUID,
   MOCK_DOCUMENTS,
   MOCK_AGENTS,
+  MOCK_AGENT_ACTIVITIES,
+  MOCK_AGENT_PROPERTIES,
+  MOCK_AGENT_CLIENTS,
+  MOCK_AGENT_COMMISSIONS,
 } from './mock-data';
 
 interface DataState<T> {
@@ -276,6 +280,106 @@ export function useAgents(): DataState<Agent[]> {
     });
     return () => { cancelled = true; };
   }, [token]);
+
+  return state;
+}
+
+// ── Hooks para Agentes: Actividad ──
+export function useAgentActivities(agentId: string): DataState<AgentActivity[]> {
+  const { token } = useAuth();
+  const [state, setState] = useState<DataState<AgentActivity[]>>({
+    data: [],
+    loading: true,
+    error: null,
+    source: 'mock',
+  });
+
+  useEffect(() => {
+    if (!agentId) return;
+    let cancelled = false;
+    const filtered = MOCK_AGENT_ACTIVITIES.filter(a => a.agent_id === agentId);
+    fetchWithFallback<AgentActivity[]>('agent_activity', filtered, {
+      token,
+      filter: { agent_id: agentId },
+      order: { column: 'fecha', ascending: false }
+    }).then(({ data, source }) => {
+      if (!cancelled) {
+        let finalData = data;
+        if (source === 'mock') {
+          finalData = MOCK_AGENT_ACTIVITIES.filter(a => a.agent_id === agentId)
+            .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+        }
+        setState({ data: finalData, loading: false, error: null, source });
+      }
+    });
+    return () => { cancelled = true; };
+  }, [token, agentId]);
+
+  return state;
+}
+
+export function useAgentProperties(agentId: string): DataState<AgentPropertyAssignment[]> {
+  const { token } = useAuth();
+  const [state, setState] = useState<DataState<AgentPropertyAssignment[]>>({
+    data: [],
+    loading: true,
+    error: null,
+    source: 'mock',
+  });
+
+  useEffect(() => {
+    if (!agentId) return;
+    let cancelled = false;
+    const filtered = MOCK_AGENT_PROPERTIES.filter(a => a.agent_id === agentId && a.activo);
+    Promise.resolve(filtered).then((data) => {
+      if (!cancelled) setState({ data, loading: false, error: null, source: 'mock' });
+    });
+    return () => { cancelled = true; };
+  }, [token, agentId]);
+
+  return state;
+}
+
+export function useAgentClients(agentId: string): DataState<AgentClientAssignment[]> {
+  const { token } = useAuth();
+  const [state, setState] = useState<DataState<AgentClientAssignment[]>>({
+    data: [],
+    loading: true,
+    error: null,
+    source: 'mock',
+  });
+
+  useEffect(() => {
+    if (!agentId) return;
+    let cancelled = false;
+    const filtered = MOCK_AGENT_CLIENTS.filter(a => a.agent_id === agentId && a.activo);
+    Promise.resolve(filtered).then((data) => {
+      if (!cancelled) setState({ data, loading: false, error: null, source: 'mock' });
+    });
+    return () => { cancelled = true; };
+  }, [token, agentId]);
+
+  return state;
+}
+
+export function useAgentCommissions(agentId: string): DataState<AgentCommission[]> {
+  const { token } = useAuth();
+  const [state, setState] = useState<DataState<AgentCommission[]>>({
+    data: [],
+    loading: true,
+    error: null,
+    source: 'mock',
+  });
+
+  useEffect(() => {
+    if (!agentId) return;
+    let cancelled = false;
+    const filtered = MOCK_AGENT_COMMISSIONS.filter(a => a.agent_id === agentId);
+    Promise.resolve(filtered).then((data) => {
+      if (!cancelled) setState({ data, loading: false, error: null, source: 'mock' });
+    });
+    return () => { cancelled = true; };
+  }, [token, agentId]);
 
   return state;
 }

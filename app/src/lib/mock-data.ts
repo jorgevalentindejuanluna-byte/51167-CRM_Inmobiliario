@@ -4,7 +4,7 @@
    Toda entidad incluye agency_id (regla 3.1)
    ========================================================================== */
 
-import { Lead, User, Property, Agency, Operation, CRMDocument } from '@/lib/models/types';
+import { Lead, User, Property, Agency, Operation, CRMDocument, Agent, AgentActivity, AgentPropertyAssignment, AgentClientAssignment, AgentCommission } from '@/lib/models/types';
 
 
 // ── Agencia demo ──
@@ -997,7 +997,6 @@ export const MOCK_DOCUMENTS: CRMDocument[] = [
 ];
 
 // ── Agentes inmobiliarios mock ──
-import { Agent } from '@/lib/models/types';
 
 export const MOCK_AGENTS: Agent[] = [
   {
@@ -1189,6 +1188,156 @@ export const MOCK_AGENTS: Agent[] = [
     created_at: '2023-11-01T10:00:00Z',
     updated_at: '2026-05-22T07:30:00Z'
   },
+];
+
+// ── Actividad mock para agentes ──
+export const MOCK_AGENT_ACTIVITIES: AgentActivity[] = [
+  {
+    id: 'aa-001',
+    agency_id: 'ag-001',
+    agent_id: 'agt-001',
+    tipo: 'llamada',
+    fecha: '2026-05-22T09:00:00Z',
+    duracion_minutos: 12,
+    cliente_nombre: 'Elena Vance',
+    propiedad_titulo: 'Ático Salamanca',
+    resultado: 'interesado',
+    proximo_paso: 'Enviar documentación',
+    fecha_proximo_seguimiento: '2026-05-24T10:00:00Z',
+    prioridad: 'alta',
+    observaciones: 'Cliente interesado en agendar segunda visita',
+    created_at: '2026-05-22T09:15:00Z',
+  },
+  {
+    id: 'aa-002',
+    agency_id: 'ag-001',
+    agent_id: 'agt-001',
+    tipo: 'visita',
+    fecha: '2026-05-21T17:00:00Z',
+    duracion_minutos: 45,
+    cliente_nombre: 'Marcus Reed',
+    propiedad_titulo: 'Piso Chamberí',
+    resultado: 'interesado',
+    proximo_paso: 'Preparar oferta',
+    prioridad: 'alta',
+    observaciones: 'Le ha gustado mucho el piso. Quiere hacer una oferta.',
+    created_at: '2026-05-21T17:50:00Z',
+  },
+  {
+    id: 'aa-003',
+    agency_id: 'ag-001',
+    agent_id: 'agt-001',
+    tipo: 'email',
+    fecha: '2026-05-21T12:00:00Z',
+    cliente_nombre: 'Fernando López',
+    resultado: 'contactado',
+    proximo_paso: 'Esperar respuesta',
+    prioridad: 'normal',
+    observaciones: 'Enviado dossier de inversión',
+    created_at: '2026-05-21T12:05:00Z',
+  },
+  {
+    id: 'aa-004',
+    agency_id: 'ag-001',
+    agent_id: 'agt-002',
+    tipo: 'whatsapp',
+    fecha: '2026-05-22T08:00:00Z',
+    cliente_nombre: 'Sofía Navarro',
+    propiedad_titulo: 'Loft Malasaña',
+    resultado: 'contactado',
+    proximo_paso: 'Confirmar hora visita',
+    prioridad: 'alta',
+    created_at: '2026-05-22T08:05:00Z',
+  },
+  {
+    id: 'aa-005',
+    agency_id: 'ag-001',
+    agent_id: 'agt-002',
+    tipo: 'reunion',
+    fecha: '2026-05-21T10:00:00Z',
+    duracion_minutos: 60,
+    resultado: 'seguimiento_futuro',
+    proximo_paso: 'Revisar cartera',
+    prioridad: 'normal',
+    observaciones: 'Reunión de equipo semanal',
+    created_at: '2026-05-21T11:00:00Z',
+  },
+  {
+    id: 'aa-006',
+    agency_id: 'ag-001',
+    agent_id: 'agt-003',
+    tipo: 'captacion',
+    fecha: '2026-05-20T16:00:00Z',
+    cliente_nombre: 'Antonio Ruiz',
+    resultado: 'interesado',
+    proximo_paso: 'Enviar propuesta captación',
+    prioridad: 'alta',
+    observaciones: 'Posible captación en zona Centro',
+    created_at: '2026-05-20T16:30:00Z',
+  },
+  {
+    id: 'aa-007',
+    agency_id: 'ag-001',
+    agent_id: 'agt-003',
+    tipo: 'valoracion',
+    fecha: '2026-05-19T11:00:00Z',
+    duracion_minutos: 90,
+    cliente_nombre: 'Roberto Jiménez',
+    propiedad_titulo: 'Chalet Chamartín',
+    resultado: 'oferta_presentada',
+    proximo_paso: 'Preparar contrato',
+    prioridad: 'urgente',
+    observaciones: 'Valoración realizada. Precio estimado 720.000€',
+    created_at: '2026-05-19T12:30:00Z',
+  },
+  {
+    id: 'aa-008',
+    agency_id: 'ag-001',
+    agent_id: 'agt-001',
+    tipo: 'nota',
+    fecha: '2026-05-22T10:00:00Z',
+    prioridad: 'baja',
+    observaciones: 'Recordar llamar a Patricia Muñoz para calificar',
+    created_at: '2026-05-22T10:00:00Z',
+  },
+];
+
+// ── Asignaciones mock de inmuebles a agentes ──
+export const MOCK_AGENT_PROPERTIES: AgentPropertyAssignment[] = [
+  { id: 'apa-001', agency_id: 'ag-001', agent_id: 'agt-001', property_id: 'prop-001', property_titulo: 'Ático con terraza en Salamanca', property_zona: 'Salamanca', property_precio: 485000, property_operacion: 'venta', tipo_asignacion: 'principal', porcentaje_comision: 3, fecha_asignacion: '2026-03-15T10:00:00Z', activo: true, created_at: '2026-03-15T10:00:00Z' },
+  { id: 'apa-002', agency_id: 'ag-001', agent_id: 'agt-001', property_id: 'prop-002', property_titulo: 'Piso señorial en Chamberí', property_zona: 'Chamberí', property_precio: 950000, property_operacion: 'venta', tipo_asignacion: 'principal', porcentaje_comision: 3, fecha_asignacion: '2026-02-01T10:00:00Z', activo: true, created_at: '2026-02-01T10:00:00Z' },
+  { id: 'apa-003', agency_id: 'ag-001', agent_id: 'agt-001', property_id: 'prop-005', property_titulo: 'Local comercial en Gran Vía', property_zona: 'Centro', property_precio: 8500, property_operacion: 'alquiler', tipo_asignacion: 'principal', porcentaje_comision: 50, fecha_asignacion: '2026-01-10T10:00:00Z', activo: true, created_at: '2026-01-10T10:00:00Z' },
+  { id: 'apa-004', agency_id: 'ag-001', agent_id: 'agt-001', property_id: 'prop-006', property_titulo: 'Chalet de diseño en Pedralbes', property_zona: 'Pedralbes', property_precio: 2450000, property_operacion: 'venta', tipo_asignacion: 'secundario', porcentaje_comision: 1.5, fecha_asignacion: '2026-04-05T09:00:00Z', activo: true, created_at: '2026-04-05T09:00:00Z' },
+  { id: 'apa-005', agency_id: 'ag-001', agent_id: 'agt-002', property_id: 'prop-003', property_titulo: 'Loft reformado en Malasaña', property_zona: 'Malasaña', property_precio: 1350, property_operacion: 'alquiler', tipo_asignacion: 'principal', porcentaje_comision: 50, fecha_asignacion: '2026-04-20T10:00:00Z', activo: true, created_at: '2026-04-20T10:00:00Z' },
+  { id: 'apa-006', agency_id: 'ag-001', agent_id: 'agt-002', property_id: 'prop-007', property_titulo: 'Ático duplex en Ruzafa', property_zona: 'Ruzafa', property_precio: 380000, property_operacion: 'venta', tipo_asignacion: 'captador', porcentaje_comision: 1.5, fecha_asignacion: '2026-05-01T10:00:00Z', activo: true, created_at: '2026-05-01T10:00:00Z' },
+  { id: 'apa-007', agency_id: 'ag-001', agent_id: 'agt-003', property_id: 'prop-004', property_titulo: 'Chalet adosado en Chamartín', property_zona: 'Chamartín', property_precio: 720000, property_operacion: 'venta', tipo_asignacion: 'principal', porcentaje_comision: 3, fecha_asignacion: '2026-04-25T10:00:00Z', activo: true, created_at: '2026-04-25T10:00:00Z' },
+  { id: 'apa-008', agency_id: 'ag-001', agent_id: 'agt-003', property_id: 'prop-008', property_titulo: 'Casa histórica con patio en Triana', property_zona: 'Triana', property_precio: 450000, property_operacion: 'venta', tipo_asignacion: 'secundario', porcentaje_comision: 2, fecha_asignacion: '2026-03-20T11:00:00Z', activo: true, created_at: '2026-03-20T11:00:00Z' },
+  { id: 'apa-009', agency_id: 'ag-001', agent_id: 'agt-004', property_id: 'prop-009', property_titulo: 'Villa mediterránea en Port d Andratx', property_zona: 'Port d Andratx', property_precio: 3200000, property_operacion: 'venta', tipo_asignacion: 'principal', porcentaje_comision: 2.5, fecha_asignacion: '2026-04-10T12:00:00Z', activo: true, created_at: '2026-04-10T12:00:00Z' },
+];
+
+// ── Asignaciones mock de clientes a agentes ──
+export const MOCK_AGENT_CLIENTS: AgentClientAssignment[] = [
+  { id: 'aca-001', agency_id: 'ag-001', agent_id: 'agt-001', cliente_id: 'lead-001', cliente_nombre: 'Elena', cliente_apellidos: 'Vance Moreno', cliente_telefono: '+34 612 345 678', cliente_email: 'elena.vance@gmail.com', tipo_cliente: 'comprador', tipo_asignacion: 'principal', fecha_asignacion: '2026-04-28T14:30:00Z', activo: true, created_at: '2026-04-28T14:30:00Z' },
+  { id: 'aca-002', agency_id: 'ag-001', agent_id: 'agt-001', cliente_id: 'lead-002', cliente_nombre: 'Marcus', cliente_apellidos: 'Reed Blanco', cliente_telefono: '+34 623 456 789', cliente_email: 'marcus.reed@outlook.es', tipo_cliente: 'comprador', tipo_asignacion: 'principal', fecha_asignacion: '2026-04-15T11:00:00Z', activo: true, created_at: '2026-04-15T11:00:00Z' },
+  { id: 'aca-003', agency_id: 'ag-001', agent_id: 'agt-001', cliente_id: 'lead-006', cliente_nombre: 'Fernando', cliente_apellidos: 'López Martín', cliente_email: 'flopez@gmail.com', tipo_cliente: 'inversor', tipo_asignacion: 'principal', fecha_asignacion: '2026-05-04T12:30:00Z', activo: true, created_at: '2026-05-04T12:30:00Z' },
+  { id: 'aca-004', agency_id: 'ag-001', agent_id: 'agt-002', cliente_id: 'lead-005', cliente_nombre: 'Sofía', cliente_apellidos: 'Navarro Ruiz', cliente_telefono: '+34 656 789 012', cliente_email: 'sofia.navarro@hotmail.com', tipo_cliente: 'inquilino', tipo_asignacion: 'principal', fecha_asignacion: '2026-05-03T20:10:00Z', activo: true, created_at: '2026-05-03T20:10:00Z' },
+  { id: 'aca-005', agency_id: 'ag-001', agent_id: 'agt-002', cliente_id: 'lead-007', cliente_nombre: 'María', cliente_apellidos: 'Santos Ibáñez', cliente_email: 'maria.santos@icloud.com', tipo_cliente: 'comprador', tipo_asignacion: 'principal', fecha_asignacion: '2026-05-06T08:15:00Z', activo: true, created_at: '2026-05-06T08:15:00Z' },
+  { id: 'aca-006', agency_id: 'ag-001', agent_id: 'agt-003', cliente_id: 'lead-004', cliente_nombre: 'Roberto', cliente_apellidos: 'Jiménez Torres', cliente_telefono: '+34 645 678 901', cliente_email: 'r.jimenez@empresa.com', tipo_cliente: 'vendedor', tipo_asignacion: 'principal', fecha_asignacion: '2026-04-20T09:45:00Z', activo: true, created_at: '2026-04-20T09:45:00Z' },
+  { id: 'aca-007', agency_id: 'ag-001', agent_id: 'agt-003', cliente_id: 'lead-008', cliente_nombre: 'Alejandro', cliente_apellidos: 'Rivas Morales', cliente_email: 'a.rivas@proton.me', tipo_cliente: 'vendedor', tipo_asignacion: 'principal', fecha_asignacion: '2026-05-02T10:00:00Z', activo: true, created_at: '2026-05-02T10:00:00Z' },
+  { id: 'aca-008', agency_id: 'ag-001', agent_id: 'agt-001', cliente_id: 'lead-003', cliente_nombre: 'Patricia', cliente_apellidos: 'Muñoz Delgado', cliente_telefono: '+34 634 567 890', cliente_email: 'patricia.munoz@yahoo.es', tipo_cliente: 'comprador', tipo_asignacion: 'principal', fecha_asignacion: '2026-05-01T16:20:00Z', activo: true, created_at: '2026-05-01T16:20:00Z' },
+];
+
+// ── Comisiones mock para agentes ──
+export const MOCK_AGENT_COMMISSIONS: AgentCommission[] = [
+  { id: 'aco-001', agency_id: 'ag-001', agent_id: 'agt-001', operation_id: 'op-002', operation_titulo: 'Venta Piso Chamberí', property_titulo: 'Piso señorial Chamberí', tipo_comision: 'venta', concepto: 'Comisión venta Piso Chamberí', base_calculo: 950000, porcentaje: 3, importe: 28500, estado: 'pendiente', fecha_generacion: '2026-05-05T12:00:00Z', created_at: '2026-05-05T12:00:00Z', updated_at: '2026-05-05T12:00:00Z' },
+  { id: 'aco-002', agency_id: 'ag-001', agent_id: 'agt-001', property_titulo: 'Ático Salamanca', operation_titulo: 'Venta Ático Salamanca', tipo_comision: 'venta', concepto: 'Comisión venta Ático Salamanca', base_calculo: 485000, porcentaje: 3, importe: 14550, estado: 'calculada', fecha_generacion: '2026-05-01T10:00:00Z', created_at: '2026-05-01T10:00:00Z', updated_at: '2026-05-01T10:00:00Z' },
+  { id: 'aco-003', agency_id: 'ag-001', agent_id: 'agt-001', property_titulo: 'Local Gran Vía', operation_titulo: 'Alquiler Local Gran Vía', tipo_comision: 'alquiler', concepto: 'Comisión alquiler Local Gran Vía', base_calculo: 8500, porcentaje: 50, importe: 4250, estado: 'liquidada', fecha_generacion: '2026-04-01T09:00:00Z', fecha_liquidacion: '2026-05-01T09:00:00Z', created_at: '2026-04-01T09:00:00Z', updated_at: '2026-05-01T09:00:00Z' },
+  { id: 'aco-004', agency_id: 'ag-001', agent_id: 'agt-001', tipo_comision: 'captacion', concepto: 'Comisión captación Villa Pedralbes', base_calculo: 2450000, porcentaje: 2.5, importe: 61250, estado: 'calculada', fecha_generacion: '2026-04-05T09:00:00Z', created_at: '2026-04-05T09:00:00Z', updated_at: '2026-04-05T09:00:00Z' },
+  { id: 'aco-005', agency_id: 'ag-001', agent_id: 'agt-002', property_titulo: 'Loft Malasaña', operation_titulo: 'Alquiler Loft Malasaña', tipo_comision: 'alquiler', concepto: 'Comisión alquiler Loft Malasaña', base_calculo: 1350, porcentaje: 50, importe: 675, estado: 'aprobada', fecha_generacion: '2026-05-06T09:00:00Z', created_at: '2026-05-06T09:00:00Z', updated_at: '2026-05-06T09:00:00Z' },
+  { id: 'aco-006', agency_id: 'ag-001', agent_id: 'agt-002', tipo_comision: 'captacion', concepto: 'Captación Ático Ruzafa', base_calculo: 380000, porcentaje: 1.5, importe: 5700, estado: 'pendiente', fecha_generacion: '2026-05-01T10:00:00Z', created_at: '2026-05-01T10:00:00Z', updated_at: '2026-05-01T10:00:00Z' },
+  { id: 'aco-007', agency_id: 'ag-001', agent_id: 'agt-003', property_titulo: 'Chalet Chamartín', operation_titulo: 'Venta Chalet Chamartín', tipo_comision: 'venta', concepto: 'Comisión venta Chalet Chamartín', base_calculo: 720000, porcentaje: 3, importe: 21600, estado: 'validada', fecha_generacion: '2026-04-25T10:00:00Z', created_at: '2026-04-25T10:00:00Z', updated_at: '2026-04-28T10:00:00Z' },
+  { id: 'aco-008', agency_id: 'ag-001', agent_id: 'agt-003', property_titulo: 'Casa Triana', operation_titulo: 'Venta Casa Triana', tipo_comision: 'compartida', concepto: 'Comisión compartida Casa Triana', base_calculo: 450000, porcentaje: 2, importe: 9000, estado: 'retenida', notas: 'Pendiente documentación propietario', fecha_generacion: '2026-03-20T11:00:00Z', created_at: '2026-03-20T11:00:00Z', updated_at: '2026-04-01T11:00:00Z' },
+  { id: 'aco-009', agency_id: 'ag-001', agent_id: 'agt-004', property_titulo: 'Villa Port d Andratx', operation_titulo: 'Venta Villa Port d Andratx', tipo_comision: 'venta', concepto: 'Comisión venta Villa Port d Andratx', base_calculo: 3200000, porcentaje: 2.5, importe: 80000, estado: 'calculada', fecha_generacion: '2026-04-10T12:00:00Z', created_at: '2026-04-10T12:00:00Z', updated_at: '2026-04-10T12:00:00Z' },
 ];
 
 

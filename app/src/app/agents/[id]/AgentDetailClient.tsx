@@ -2,14 +2,13 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useAgents } from '@/lib/use-data';
+import { useAgents, useAgentActivities, useAgentProperties, useAgentClients, useAgentCommissions } from '@/lib/use-data';
 import {
-  AGENT_TYPE_LABELS,
-  AGENT_STATUS_LABELS,
-  AGENT_STATUS_COLORS,
-  AGENT_RELACION_LABELS,
-  formatCurrency,
-  formatDate,
+  AGENT_TYPE_LABELS, AGENT_STATUS_LABELS, AGENT_STATUS_COLORS, AGENT_RELACION_LABELS,
+  ACTIVITY_TIPO_LABELS, ACTIVITY_TIPO_ICONS, ACTIVITY_PRIORIDAD_LABELS,
+  COMMISSION_TIPO_LABELS, COMMISSION_ESTADO_LABELS, COMMISSION_ESTADO_COLORS,
+  ASIGNACION_TIPO_LABELS, CLIENTE_TIPO_LABELS, ACTIVITY_RESULTADO_LABELS,
+  formatCurrency, formatDate, formatDateTime,
 } from '@/lib/constants';
 import styles from './page.module.css';
 
@@ -24,8 +23,17 @@ const TABS: { key: Tab; label: string; icon: string }[] = [
   { key: 'documentos', label: 'Documentos', icon: 'description' },
 ];
 
+function priorityLabel(p: string): string {
+  return ACTIVITY_PRIORIDAD_LABELS[p] || p;
+}
+
 export default function AgentDetailClient({ id }: { id: string }) {
   const { data: agents } = useAgents();
+  const { data: activities } = useAgentActivities(id);
+  const { data: properties } = useAgentProperties(id);
+  const { data: clients } = useAgentClients(id);
+  const { data: commissions } = useAgentCommissions(id);
+
   const agent = agents.find(a => a.id === id);
   const [activeTab, setActiveTab] = useState<Tab>('resumen');
 
@@ -43,7 +51,6 @@ export default function AgentDetailClient({ id }: { id: string }) {
 
   return (
     <div className={styles.page}>
-      {/* Cabecera */}
       <header className={styles.header}>
         <div className={styles.headerLeft}>
           <Link href="/agents" className={styles.backBtn}>
@@ -61,16 +68,15 @@ export default function AgentDetailClient({ id }: { id: string }) {
           </div>
         </div>
         <div className={styles.headerActions}>
-          <button className="btn btn--outline btn--sm">
+          <Link href={`/agents/${id}/edit`} className="btn btn--outline btn--sm">
             <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>edit</span> Editar
-          </button>
-          <button className="btn btn--outline btn--sm">
+          </Link>
+          <a href={`tel:${agent.telefono}`} className="btn btn--outline btn--sm">
             <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>phone</span> Llamar
-          </button>
+          </a>
         </div>
       </header>
 
-      {/* Mini KPIs */}
       <div className={styles.miniKpiRow}>
         <div className={styles.miniKpi}>
           <span className={styles.miniKpiValue}>{agent.inmuebles_asignados}</span>
@@ -98,7 +104,6 @@ export default function AgentDetailClient({ id }: { id: string }) {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className={styles.tabs}>
         {TABS.map(tab => (
           <button key={tab.key} className={`${styles.tab} ${activeTab === tab.key ? styles.tabActive : ''}`} onClick={() => setActiveTab(tab.key)}>
@@ -108,7 +113,6 @@ export default function AgentDetailClient({ id }: { id: string }) {
         ))}
       </div>
 
-      {/* Contenido según tab */}
       <div className={styles.tabContent}>
         {activeTab === 'resumen' && (
           <div className={styles.grid2col}>
@@ -156,42 +160,225 @@ export default function AgentDetailClient({ id }: { id: string }) {
         )}
 
         {activeTab === 'actividad' && (
-          <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-tertiary)' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '48px', marginBottom: '1rem', opacity: 0.5 }}>timeline</span>
-            <p>Registro de actividad del agente — Próximamente</p>
-            <p className="text-helper text-muted">Llamadas, visitas, reuniones y seguimientos.</p>
+          <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 className="text-title">Registro de Actividad</h3>
+              <button className="btn btn--primary btn--sm">
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span> Nueva actividad
+              </button>
+            </div>
+            {activities.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-tertiary)' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '48px', marginBottom: '1rem', opacity: 0.5 }}>timeline</span>
+                <p>Sin actividad registrada</p>
+              </div>
+            ) : (
+              <div className={styles.activityList}>
+                {activities.map(act => (
+                  <div key={act.id} className={styles.activityItem}>
+                    <div className={styles.activityIcon}>
+                      <span className="material-symbols-outlined">{ACTIVITY_TIPO_ICONS[act.tipo] || 'circle'}</span>
+                    </div>
+                    <div className={styles.activityBody}>
+                      <div className={styles.activityHeader}>
+                        <span className={`badge badge--${act.prioridad === 'urgente' ? 'error' : act.prioridad === 'alta' ? 'warning' : 'info'}`}>
+                          {ACTIVITY_TIPO_LABELS[act.tipo]}
+                        </span>
+                        <span className="text-helper text-muted">{formatDateTime(act.fecha)}</span>
+                        {act.duracion_minutos && <span className="text-helper text-muted">{act.duracion_minutos} min</span>}
+                      </div>
+                      {act.cliente_nombre && <p className={styles.activityText}><strong>Cliente:</strong> {act.cliente_nombre}</p>}
+                      {act.propiedad_titulo && <p className={styles.activityText}><strong>Inmueble:</strong> {act.propiedad_titulo}</p>}
+                      {act.observaciones && <p className={styles.activityText}>{act.observaciones}</p>}
+                      {act.resultado && (
+                        <span className="badge badge--neutral">{ACTIVITY_RESULTADO_LABELS[act.resultado] || act.resultado}</span>
+                      )}
+                      {act.proximo_paso && (
+                        <div className={styles.activityNextStep}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_forward</span>
+                          {act.proximo_paso}
+                          {act.fecha_proximo_seguimiento && <span className="text-helper text-muted"> ({formatDate(act.fecha_proximo_seguimiento)})</span>}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
         {activeTab === 'inmuebles' && (
-          <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-tertiary)' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '48px', marginBottom: '1rem', opacity: 0.5 }}>domain</span>
-            <p>Inmuebles asignados — Próximamente</p>
-            <p className="text-helper text-muted">Gestión de inmuebles en captación, venta y alquiler.</p>
+          <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 className="text-title">Inmuebles Asignados ({properties.length})</h3>
+              <button className="btn btn--primary btn--sm">
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span> Asignar
+              </button>
+            </div>
+            {properties.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-tertiary)' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '48px', marginBottom: '1rem', opacity: 0.5 }}>domain</span>
+                <p>Sin inmuebles asignados</p>
+              </div>
+            ) : (
+              <div className="table-wrap">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Inmueble</th>
+                      <th>Zona</th>
+                      <th>Precio</th>
+                      <th>Operación</th>
+                      <th>Rol</th>
+                      <th>Comisión</th>
+                      <th>Asignado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {properties.map(p => (
+                      <tr key={p.id}>
+                        <td><Link href={`/properties/${p.property_id}`} className="link">{p.property_titulo}</Link></td>
+                        <td>{p.property_zona || '—'}</td>
+                        <td>{p.property_precio ? formatCurrency(p.property_precio) : '—'}</td>
+                        <td><span className="capitalize">{p.property_operacion || '—'}</span></td>
+                        <td><span className={`badge badge--info`}>{ASIGNACION_TIPO_LABELS[p.tipo_asignacion]}</span></td>
+                        <td>{p.porcentaje_comision ? `${p.porcentaje_comision}%` : '—'}</td>
+                        <td className="text-helper text-muted">{formatDate(p.fecha_asignacion)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
         {activeTab === 'clientes' && (
-          <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-tertiary)' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '48px', marginBottom: '1rem', opacity: 0.5 }}>group</span>
-            <p>Clientes asignados — Próximamente</p>
-            <p className="text-helper text-muted">Propietarios, compradores, inquilinos e inversores.</p>
+          <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 className="text-title">Clientes Asignados ({clients.length})</h3>
+              <button className="btn btn--primary btn--sm">
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span> Asignar
+              </button>
+            </div>
+            {clients.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-tertiary)' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '48px', marginBottom: '1rem', opacity: 0.5 }}>group</span>
+                <p>Sin clientes asignados</p>
+              </div>
+            ) : (
+              <div className="table-wrap">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Cliente</th>
+                      <th>Tipo</th>
+                      <th>Teléfono</th>
+                      <th>Email</th>
+                      <th>Rol</th>
+                      <th>Desde</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {clients.map(c => (
+                      <tr key={c.id}>
+                        <td><strong>{c.cliente_nombre} {c.cliente_apellidos || ''}</strong></td>
+                        <td><span className={`badge badge--${c.tipo_cliente === 'comprador' ? 'warning' : c.tipo_cliente === 'vendedor' ? 'success' : c.tipo_cliente === 'inversor' ? 'primary' : 'neutral'}`}>
+                          {CLIENTE_TIPO_LABELS[c.tipo_cliente] || c.tipo_cliente}
+                        </span></td>
+                        <td>{c.cliente_telefono || '—'}</td>
+                        <td>{c.cliente_email || '—'}</td>
+                        <td><span className="badge badge--info">{c.tipo_asignacion === 'principal' ? 'Principal' : 'Colaborador'}</span></td>
+                        <td className="text-helper text-muted">{formatDate(c.fecha_asignacion)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
         {activeTab === 'comisiones' && (
-          <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-tertiary)' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '48px', marginBottom: '1rem', opacity: 0.5 }}>payments</span>
-            <p>Comisiones — Próximamente</p>
-            <p className="text-helper text-muted">Historial de comisiones generadas, pendientes y liquidadas.</p>
+          <div>
+            {commissions.length > 0 && (
+              <div className={styles.miniKpiRow} style={{ marginBottom: 'var(--space-md)' }}>
+                <div className={styles.miniKpi}>
+                  <span className={styles.miniKpiValue}>{formatCurrency(commissions.reduce((s, c) => s + c.importe, 0))}</span>
+                  <span className={styles.miniKpiLabel}>Total comisiones</span>
+                </div>
+                <div className={styles.miniKpi}>
+                  <span className={styles.miniKpiValue}>{formatCurrency(commissions.filter(c => c.estado === 'liquidada' || c.estado === 'aprobada').reduce((s, c) => s + c.importe, 0))}</span>
+                  <span className={styles.miniKpiLabel}>Liquidado/Aprobado</span>
+                </div>
+                <div className={styles.miniKpi}>
+                  <span className={styles.miniKpiValue}>{formatCurrency(commissions.filter(c => c.estado === 'pendiente' || c.estado === 'calculada' || c.estado === 'validada').reduce((s, c) => s + c.importe, 0))}</span>
+                  <span className={styles.miniKpiLabel}>Pendiente</span>
+                </div>
+              </div>
+            )}
+            <div className="card">
+              {commissions.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-tertiary)' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '48px', marginBottom: '1rem', opacity: 0.5 }}>payments</span>
+                  <p>Sin comisiones registradas</p>
+                </div>
+              ) : (
+                <div className="table-wrap">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Concepto</th>
+                        <th>Tipo</th>
+                        <th>Base</th>
+                        <th>%</th>
+                        <th>Importe</th>
+                        <th>Estado</th>
+                        <th>Fecha</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {commissions.map(c => (
+                        <tr key={c.id}>
+                          <td><strong>{c.concepto}</strong></td>
+                          <td><span className="badge badge--neutral">{COMMISSION_TIPO_LABELS[c.tipo_comision]}</span></td>
+                          <td>{formatCurrency(c.base_calculo)}</td>
+                          <td>{c.porcentaje}%</td>
+                          <td><strong style={{ color: 'var(--color-primary)' }}>{formatCurrency(c.importe)}</strong></td>
+                          <td><span className={`badge badge--${COMMISSION_ESTADO_COLORS[c.estado]}`}>{COMMISSION_ESTADO_LABELS[c.estado]}</span></td>
+                          <td className="text-helper text-muted">{formatDate(c.fecha_generacion)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
         {activeTab === 'documentos' && (
-          <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-tertiary)' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '48px', marginBottom: '1rem', opacity: 0.5 }}>description</span>
-            <p>Documentos — Próximamente</p>
-            <p className="text-helper text-muted">DNI, contratos, certificados y documentación del agente.</p>
+          <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 className="text-title">Documentos</h3>
+              <button className="btn btn--primary btn--sm">
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>upload</span> Subir documento
+              </button>
+            </div>
+            <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-text-tertiary)' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '64px', marginBottom: '1rem', opacity: 0.3 }}>folder_open</span>
+              <p style={{ marginBottom: '0.5rem', fontWeight: 500 }}>Gestión documental del agente</p>
+              <p className="text-helper text-muted">
+                Sube y gestiona DNI, contratos, certificados,<br />
+                formación y documentación del agente.
+              </p>
+              <div className={styles.docTypes} style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '1.5rem' }}>
+                {['DNI/NIE', 'Contrato', 'Seguro RC', 'Certificados', 'Formación', 'API'].map(t => (
+                  <span key={t} className="badge badge--neutral" style={{ cursor: 'pointer' }}>{t}</span>
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </div>

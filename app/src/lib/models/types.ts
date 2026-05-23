@@ -458,3 +458,98 @@ export interface Agent {
   created_at: string;
   updated_at: string;
 }
+
+// ── Actividad de agente ──
+export type AgentActivityTipo =
+  | 'llamada'
+  | 'email'
+  | 'whatsapp'
+  | 'visita'
+  | 'reunion'
+  | 'captacion'
+  | 'valoracion'
+  | 'oferta'
+  | 'reserva'
+  | 'seguimiento'
+  | 'nota'
+  | 'tarea';
+
+export interface AgentActivity {
+  id: string;
+  agency_id: string;
+  agent_id: string;
+  tipo: AgentActivityTipo;
+  fecha: string;
+  duracion_minutos?: number;
+  cliente_id?: string;
+  cliente_nombre?: string;
+  propiedad_id?: string;
+  propiedad_titulo?: string;
+  resultado?: string;
+  proximo_paso?: string;
+  fecha_proximo_seguimiento?: string;
+  prioridad: 'baja' | 'normal' | 'alta' | 'urgente';
+  observaciones?: string;
+  created_at: string;
+}
+
+// ── Asignación agente-inmueble ──
+export type AgentAssignmentTipo = 'principal' | 'secundario' | 'captador' | 'comercial_venta' | 'comercial_alquiler';
+
+export interface AgentPropertyAssignment {
+  id: string;
+  agency_id: string;
+  agent_id: string;
+  property_id: string;
+  property_titulo?: string;
+  property_zona?: string;
+  property_precio?: number;
+  property_operacion?: string;
+  tipo_asignacion: AgentAssignmentTipo;
+  porcentaje_comision?: number;
+  fecha_asignacion: string;
+  fecha_desasignacion?: string;
+  activo: boolean;
+  created_at: string;
+}
+
+// ── Asignación agente-cliente ──
+export interface AgentClientAssignment {
+  id: string;
+  agency_id: string;
+  agent_id: string;
+  cliente_id: string;
+  cliente_nombre?: string;
+  cliente_apellidos?: string;
+  cliente_telefono?: string;
+  cliente_email?: string;
+  tipo_cliente: string;
+  tipo_asignacion: 'principal' | 'colaborador';
+  fecha_asignacion: string;
+  activo: boolean;
+  created_at: string;
+}
+
+// ── Comisión de agente ──
+export type CommissionEstado = 'calculada' | 'pendiente' | 'validada' | 'aprobada' | 'liquidada' | 'retenida' | 'anulada';
+
+export interface AgentCommission {
+  id: string;
+  agency_id: string;
+  agent_id: string;
+  operation_id?: string;
+  operation_titulo?: string;
+  property_id?: string;
+  property_titulo?: string;
+  tipo_comision: 'captacion' | 'venta' | 'alquiler' | 'exclusiva' | 'colaboracion' | 'compartida' | 'objetivo' | 'bonus';
+  concepto: string;
+  base_calculo: number;
+  porcentaje: number;
+  importe: number;
+  estado: CommissionEstado;
+  fecha_generacion: string;
+  fecha_liquidacion?: string;
+  notas?: string;
+  created_at: string;
+  updated_at: string;
+}

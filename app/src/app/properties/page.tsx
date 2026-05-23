@@ -1,5 +1,7 @@
 'use client';
 
+
+
 import { useState } from 'react';
 import Link from 'next/link';
 import { useProperties } from '@/lib/use-data';
@@ -87,9 +89,17 @@ export default function PropertiesPage() {
       <div className={styles.grid}>
         {filteredProperties.map(property => (
           <Link href={`/properties/${property.id}`} key={property.id} className={styles.card}>
-            {/* Imagen Placeholder */}
+            {/* Imagen de Portada o Placeholder */}
             <div className={styles.imagePlaceholder}>
-              <span className={`material-symbols-outlined ${styles.imageIcon}`}>real_estate_agent</span>
+              {property.fotos && property.fotos.length > 0 ? (
+                <img 
+                  src={property.fotos[0]} 
+                  alt={property.titulo} 
+                  className={styles.cardImage} 
+                />
+              ) : (
+                <span className={`material-symbols-outlined ${styles.imageIcon}`}>real_estate_agent</span>
+              )}
               <div className={styles.badges}>
                 <span className={`${styles.badge} ${styles.badgeOperation}`}>
                   {property.operacion}

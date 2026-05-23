@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { useLeads, useOperations, useProperties } from '@/lib/use-data';
 import { formatCurrency, formatDate } from '@/lib/constants';

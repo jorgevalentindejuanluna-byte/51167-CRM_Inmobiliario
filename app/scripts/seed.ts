@@ -136,7 +136,8 @@ async function seed() {
       piscina: p.piscina,
       certificado_energetico: p.certificado_energetico,
       descripcion: p.descripcion,
-      agente_responsable: toUUID(p.agente_responsable)
+      agente_responsable: toUUID(p.agente_responsable),
+      fotos: p.fotos
     }));
     const { error: errorProp } = await supabase.from('properties').upsert(propsToInsert);
     if (errorProp) throw errorProp;

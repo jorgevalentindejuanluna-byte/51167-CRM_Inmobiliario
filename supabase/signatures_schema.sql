@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS public.signatures (
 ALTER TABLE public.signatures ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Signatures isolation by agency" ON public.signatures
-    USING (agency_id = (auth.jwt() ->> 'agency_id')::uuid);
+    USING (agency_id = (auth.jwt() -> 'user_metadata' ->> 'agency_id')::uuid);
 
 -- Trigger
 CREATE TRIGGER update_signatures_updated_at

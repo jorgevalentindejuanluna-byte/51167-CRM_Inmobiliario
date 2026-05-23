@@ -11,6 +11,8 @@ import {
   MOCK_USERS,
   MOCK_DASHBOARD_KPIS,
   MOCK_ACTIVITY,
+  toUUID,
+  MOCK_DOCUMENTS,
 } from './mock-data';
 
 interface DataState<T> {
@@ -20,21 +22,52 @@ interface DataState<T> {
   source: 'supabase' | 'mock';
 }
 
+/** Sanitizar IDs de mock a UUIDs reales antes de consultar a Supabase */
+function sanitizeUUID(id: string | undefined): string | undefined {
+  if (!id) return undefined;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (uuidRegex.test(id)) {
+    return id;
+  }
+  return toUUID(id) || id;
+}
+
+/** Helper local para persistencia temporal en el navegador */
+function getLocalMock<T>(table: string, fallback: T): T {
+  if (typeof window === 'undefined') return fallback;
+  const cached = localStorage.getItem(`crm_mock_${table}`);
+  if (cached) {
+    try {
+      return JSON.parse(cached);
+    } catch (e) {
+      return fallback;
+    }
+  }
+  return fallback;
+}
+
+export function saveLocalMock(table: string, data: any) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(`crm_mock_${table}`, JSON.stringify(data));
+  }
+}
+
 /** Cargar datos genéricos con fallback automático a mock */
 async function fetchWithFallback<T>(
   table: string,
   fallback: T,
   options?: any
 ): Promise<{ data: T; source: 'supabase' | 'mock' }> {
+  const localFallback = getLocalMock(table, fallback);
   try {
     const result = await supabaseSelect<T extends (infer U)[] ? U : never>(table, options);
     if (result && result.length > 0) {
       return { data: result as unknown as T, source: 'supabase' };
     }
-    return { data: fallback, source: 'mock' };
+    return { data: localFallback, source: 'mock' };
   } catch (error) {
     console.warn(`[Data] Fallback a mock para tabla '${table}':`, error);
-    return { data: fallback, source: 'mock' };
+    return { data: localFallback, source: 'mock' };
   }
 }
 
@@ -138,14 +171,15 @@ export function useDashboardKpis() {
   return { data: MOCK_DASHBOARD_KPIS, loading: false, source: 'mock' as const };
 }
 
+export function useActivity() {
   return { data: MOCK_ACTIVITY, loading: false, source: 'mock' as const };
 }
 
 // ── Hook para Documentos (Regla 6) ──
-export function useDocuments(filters: { lead_id?: string; operation_id?: string }): DataState<CRMDocument[]> {
+export function useDocuments(filters: { lead_id?: string; operation_id?: string; property_id?: string } = {}): DataState<CRMDocument[]> {
   const { token } = useAuth();
   const [state, setState] = useState<DataState<CRMDocument[]>>({
-    data: [],
+    data: MOCK_DOCUMENTS,
     loading: true,
     error: null,
     source: 'mock',
@@ -153,21 +187,40 @@ export function useDocuments(filters: { lead_id?: string; operation_id?: string 
 
   useEffect(() => {
     let cancelled = false;
-    let filterStr = '';
-    if (filters.lead_id) filterStr = `lead_id=eq.${filters.lead_id}`;
-    if (filters.operation_id) filterStr = `operation_id=eq.${filters.operation_id}`;
+    const filterObj: Record<string, string> = {};
+    if (filters.lead_id) {
+      const sanitized = sanitizeUUID(filters.lead_id);
+      if (sanitized) filterObj.lead_id = sanitized;
+    }
+    if (filters.operation_id) {
+      const sanitized = sanitizeUUID(filters.operation_id);
+      if (sanitized) filterObj.operation_id = sanitized;
+    }
+    if (filters.property_id) {
+      const sanitized = sanitizeUUID(filters.property_id);
+      if (sanitized) filterObj.property_id = sanitized;
+    }
 
-    fetchWithFallback<CRMDocument[]>('documents', [], { 
+    fetchWithFallback<CRMDocument[]>('documents', MOCK_DOCUMENTS, { 
       token,
-      filter: filterStr,
+      filter: filterObj,
       order: { column: 'created_at', ascending: false }
     }).then(({ data, source }) => {
       if (!cancelled) {
-        setState({ data, loading: false, error: null, source });
+        let finalData = data;
+        if (source === 'mock') {
+          finalData = MOCK_DOCUMENTS.filter(doc => {
+            if (filters.lead_id && doc.lead_id !== filters.lead_id) return false;
+            if (filters.operation_id && doc.operation_id !== filters.operation_id) return false;
+            if (filters.property_id && doc.property_id !== filters.property_id) return false;
+            return true;
+          });
+        }
+        setState({ data: finalData, loading: false, error: null, source });
       }
     });
     return () => { cancelled = true; };
-  }, [token, filters.lead_id, filters.operation_id]);
+  }, [token, filters.lead_id, filters.operation_id, filters.property_id]);
 
   return state;
 }
@@ -186,9 +239,11 @@ export function useSignatures(operationId: string): DataState<CRMSignature[]> {
     if (!operationId) return;
     let cancelled = false;
     
+    const sanitizedOpId = sanitizeUUID(operationId);
+    
     fetchWithFallback<CRMSignature[]>('signatures', [], { 
       token,
-      filter: `operation_id=eq.${operationId}`,
+      filter: sanitizedOpId ? { operation_id: sanitizedOpId } : {},
       order: { column: 'created_at', ascending: false }
     }).then(({ data, source }) => {
       if (!cancelled) {

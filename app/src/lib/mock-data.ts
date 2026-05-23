@@ -4,7 +4,8 @@
    Toda entidad incluye agency_id (regla 3.1)
    ========================================================================== */
 
-import { Lead, User, Property, Agency, Operation } from '@/lib/models/types';
+import { Lead, User, Property, Agency, Operation, CRMDocument } from '@/lib/models/types';
+
 
 // ── Agencia demo ──
 export const MOCK_AGENCY: Agency = {
@@ -347,6 +348,8 @@ export const MOCK_PROPERTIES: Property[] = [
     zona: 'Salamanca',
     ciudad: 'Madrid',
     provincia: 'Madrid',
+    codigo_postal: '28001',
+    referencia_catastral: '9872023VH5797S0001WX',
     precio: 485000,
     precio_negociable: true,
     superficie: 120,
@@ -354,12 +357,18 @@ export const MOCK_PROPERTIES: Property[] = [
     banos: 2,
     planta: '6ª',
     ascensor: true,
+    garaje: false,
     terraza: true,
+    piscina: false,
     certificado_energetico: 'C',
-    descripcion: 'Espectacular ático con terraza panorámica en el corazón de Salamanca. Reformado con materiales de primera calidad.',
+    descripcion: 'Espectacular ático con terraza panorámica en el corazón del barrio de Salamanca. Reformado con materiales de primera calidad, goza de una luz natural inmejorable y vistas despejadas.',
     agente_responsable: 'usr-002',
     portales_publicados: ['idealista', 'fotocasa'],
-    fotos: [],
+    fotos: [
+      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=1200&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=800&auto=format&fit=crop'
+    ],
     fecha_alta: '2026-03-15T10:00:00Z',
     created_at: '2026-03-15T10:00:00Z',
     updated_at: '2026-05-06T09:00:00Z',
@@ -376,6 +385,8 @@ export const MOCK_PROPERTIES: Property[] = [
     zona: 'Chamberí',
     ciudad: 'Madrid',
     provincia: 'Madrid',
+    codigo_postal: '28003',
+    referencia_catastral: '1234567VK1234S0002YZ',
     precio: 950000,
     precio_negociable: true,
     superficie: 210,
@@ -384,12 +395,18 @@ export const MOCK_PROPERTIES: Property[] = [
     planta: '3ª',
     ascensor: true,
     garaje: true,
+    terraza: false,
+    piscina: false,
     certificado_energetico: 'D',
-    descripcion: 'Piso señorial con techos de 3.5m, molduras originales y balcones a la calle. Ubicación premium.',
+    descripcion: 'Piso señorial con techos de 3.5m, molduras originales y grandes balcones a la calle. Ubicación premium en Chamberí. Incluye plaza de garaje y trastero en la misma finca.',
     agente_responsable: 'usr-002',
     propietario_id: 'lead-004',
     portales_publicados: ['idealista', 'fotocasa', 'habitaclia'],
-    fotos: [],
+    fotos: [
+      'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?q=80&w=1200&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?q=80&w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?q=80&w=800&auto=format&fit=crop'
+    ],
     fecha_alta: '2026-02-01T10:00:00Z',
     created_at: '2026-02-01T10:00:00Z',
     updated_at: '2026-05-05T14:00:00Z',
@@ -406,16 +423,25 @@ export const MOCK_PROPERTIES: Property[] = [
     zona: 'Malasaña',
     ciudad: 'Madrid',
     provincia: 'Madrid',
+    codigo_postal: '28004',
+    referencia_catastral: '4567890VM4567T0003AB',
     precio: 1350,
     superficie: 65,
     habitaciones: 1,
     banos: 1,
     planta: 'Bajo',
+    ascensor: false,
+    garaje: false,
+    terraza: false,
+    piscina: false,
     certificado_energetico: 'B',
-    descripcion: 'Loft de diseño completamente reformado. Zona premium con todos los servicios.',
+    descripcion: 'Loft de diseño industrial completamente reformado por estudio de arquitectura. Espacios abiertos, techos altos con vigas de madera vista y calidades excelentes. Ideal parejas.',
     agente_responsable: 'usr-003',
     portales_publicados: ['idealista'],
-    fotos: [],
+    fotos: [
+      'https://images.unsplash.com/photo-1536376072261-38c75010e6c9?q=80&w=1200&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1502005229762-fc1b2b812ca5?q=80&w=800&auto=format&fit=crop'
+    ],
     fecha_alta: '2026-04-20T10:00:00Z',
     created_at: '2026-04-20T10:00:00Z',
     updated_at: '2026-05-04T11:00:00Z',
@@ -432,18 +458,25 @@ export const MOCK_PROPERTIES: Property[] = [
     zona: 'Chamartín',
     ciudad: 'Madrid',
     provincia: 'Madrid',
+    codigo_postal: '28036',
+    referencia_catastral: '9876543CH9876S0004CD',
     precio: 720000,
     superficie: 280,
     habitaciones: 4,
     banos: 3,
+    planta: 'Chalet',
+    ascensor: false,
     garaje: true,
     terraza: true,
     piscina: true,
     certificado_energetico: 'C',
-    descripcion: 'Chalet adosado con jardín privado y piscina comunitaria. Excelente estado.',
+    descripcion: 'Chalet adosado en urbanización privada de Chamartín. Dispone de jardín privado, piscina comunitaria, 4 amplios dormitorios y garaje subterráneo para 2 vehículos.',
     agente_responsable: 'usr-004',
     propietario_id: 'lead-004',
-    fotos: [],
+    fotos: [
+      'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=1200&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=800&auto=format&fit=crop'
+    ],
     fecha_alta: '2026-04-25T10:00:00Z',
     created_at: '2026-04-25T10:00:00Z',
     updated_at: '2026-05-06T10:00:00Z',
@@ -460,16 +493,204 @@ export const MOCK_PROPERTIES: Property[] = [
     zona: 'Centro',
     ciudad: 'Madrid',
     provincia: 'Madrid',
+    codigo_postal: '28013',
+    referencia_catastral: '1122334GV1122V0005EF',
     precio: 8500,
     superficie: 150,
+    habitaciones: 0,
+    banos: 2,
+    planta: 'Bajo',
+    ascensor: false,
+    garaje: false,
+    terraza: false,
+    piscina: false,
     certificado_energetico: 'E',
-    descripcion: 'Local en plena Gran Vía con gran escaparate. Ideal hostelería o retail.',
+    descripcion: 'Local comercial situado en el tramo más cotizado de la Gran Vía madrileña. Excelente visibilidad con amplio escaparate acristalado. Apto para restauración o retail de lujo.',
     agente_responsable: 'usr-002',
     portales_publicados: ['idealista', 'pisos_com'],
-    fotos: [],
+    fotos: [
+      'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=1200&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1497366811353-6870744d04b2?q=80&w=800&auto=format&fit=crop'
+    ],
     fecha_alta: '2026-01-10T10:00:00Z',
     created_at: '2026-01-10T10:00:00Z',
     updated_at: '2026-05-01T09:00:00Z',
+  },
+  {
+    id: 'prop-006',
+    agency_id: 'ag-001',
+    referencia: 'RTS-2026-006',
+    titulo: 'Chalet de diseño en Pedralbes',
+    tipo_inmueble: 'chalet',
+    operacion: 'venta',
+    estado: 'disponible',
+    direccion: 'Avinguda de Pedralbes 45',
+    zona: 'Pedralbes',
+    ciudad: 'Barcelona',
+    provincia: 'Barcelona',
+    codigo_postal: '08034',
+    referencia_catastral: '5566778BC5566X0006GH',
+    precio: 2450000,
+    superficie: 420,
+    habitaciones: 5,
+    banos: 4,
+    planta: 'Chalet',
+    ascensor: true,
+    garaje: true,
+    terraza: true,
+    piscina: true,
+    certificado_energetico: 'A',
+    descripcion: 'Exclusiva villa de arquitectura vanguardista en la zona alta de Barcelona. Domótica integral, piscina desbordante con vistas panorámicas, jardín mediterráneo y acabados premium.',
+    agente_responsable: 'usr-002',
+    portales_publicados: ['idealista', 'fotocasa'],
+    fotos: [
+      'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=1200&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?q=80&w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1600566752355-35792bedcfea?q=80&w=800&auto=format&fit=crop'
+    ],
+    fecha_alta: '2026-04-05T09:00:00Z',
+    created_at: '2026-04-05T09:00:00Z',
+    updated_at: '2026-05-06T12:00:00Z',
+  },
+  {
+    id: 'prop-007',
+    agency_id: 'ag-001',
+    referencia: 'RTS-2026-007',
+    titulo: 'Ático duplex en Ruzafa',
+    tipo_inmueble: 'piso',
+    operacion: 'venta',
+    estado: 'disponible',
+    direccion: 'Carrer de Sueca 22',
+    zona: 'Ruzafa',
+    ciudad: 'Valencia',
+    provincia: 'Valencia',
+    codigo_postal: '46006',
+    referencia_catastral: '9988776VA9988Z0007IJ',
+    precio: 380000,
+    superficie: 135,
+    habitaciones: 3,
+    banos: 2,
+    planta: '5ª',
+    ascensor: true,
+    garaje: false,
+    terraza: true,
+    piscina: false,
+    certificado_energetico: 'B',
+    descripcion: 'Espectacular ático dúplex en el barrio de moda de Valencia. Cuenta con dos terrazas amplias, salón con cocina americana integrada y un diseño moderno y minimalista.',
+    agente_responsable: 'usr-003',
+    portales_publicados: ['idealista', 'fotocasa'],
+    fotos: [
+      'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=1200&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1502005229762-fc1b2b812ca5?q=80&w=800&auto=format&fit=crop'
+    ],
+    fecha_alta: '2026-05-01T10:00:00Z',
+    created_at: '2026-05-01T10:00:00Z',
+    updated_at: '2026-05-06T15:00:00Z',
+  },
+  {
+    id: 'prop-008',
+    agency_id: 'ag-001',
+    referencia: 'RTS-2026-008',
+    titulo: 'Casa histórica con patio en Triana',
+    tipo_inmueble: 'chalet',
+    operacion: 'venta',
+    estado: 'disponible',
+    direccion: 'Calle Pureza 80',
+    zona: 'Triana',
+    ciudad: 'Sevilla',
+    provincia: 'Sevilla',
+    codigo_postal: '41010',
+    referencia_catastral: '3344556SE3344W0008KL',
+    precio: 450000,
+    superficie: 190,
+    habitaciones: 4,
+    banos: 3,
+    planta: 'Bajo',
+    ascensor: false,
+    garaje: false,
+    terraza: true,
+    piscina: false,
+    certificado_energetico: 'D',
+    descripcion: 'Típica casa trianera completamente rehabilitada conservando su esencia original. Dispone de un precioso patio central andaluz, azotea transitable con zona chillout y 4 dormitorios.',
+    agente_responsable: 'usr-004',
+    portales_publicados: ['idealista', 'pisos_com'],
+    fotos: [
+      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1200&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?q=80&w=800&auto=format&fit=crop'
+    ],
+    fecha_alta: '2026-03-20T11:00:00Z',
+    created_at: '2026-03-20T11:00:00Z',
+    updated_at: '2026-05-04T10:00:00Z',
+  },
+  {
+    id: 'prop-009',
+    agency_id: 'ag-001',
+    referencia: 'RTS-2026-009',
+    titulo: 'Villa mediterránea en Port d Andratx',
+    tipo_inmueble: 'chalet',
+    operacion: 'venta',
+    estado: 'en_captacion',
+    direccion: 'Calle Acantilado 12',
+    zona: 'Port d Andratx',
+    ciudad: 'Andratx',
+    provincia: 'Baleares',
+    codigo_postal: '07157',
+    referencia_catastral: '7788990PM7788Q0009MN',
+    precio: 3200000,
+    superficie: 550,
+    habitaciones: 6,
+    banos: 5,
+    planta: 'Chalet',
+    ascensor: true,
+    garaje: true,
+    terraza: true,
+    piscina: true,
+    certificado_energetico: 'B',
+    descripcion: 'Impresionante villa de estilo mediterráneo suspendida sobre el acantilado con vistas panorámicas al mar de Port d Andratx. Acceso privado a cala de rocas, calidades excelentes y absoluta privacidad.',
+    agente_responsable: 'usr-002',
+    portales_publicados: ['idealista', 'habitaclia'],
+    fotos: [
+      'https://images.unsplash.com/photo-1613490493576-7fde63acd811?q=80&w=1200&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=800&auto=format&fit=crop'
+    ],
+    fecha_alta: '2026-04-10T12:00:00Z',
+    created_at: '2026-04-10T12:00:00Z',
+    updated_at: '2026-05-06T11:00:00Z',
+  },
+  {
+    id: 'prop-010',
+    agency_id: 'ag-001',
+    referencia: 'RTS-2026-010',
+    titulo: 'Apartamento de diseño en Eixample',
+    tipo_inmueble: 'piso',
+    operacion: 'alquiler',
+    estado: 'disponible',
+    direccion: 'Carrer de Mallorca 112',
+    zona: 'Eixample',
+    ciudad: 'Barcelona',
+    provincia: 'Barcelona',
+    codigo_postal: '08029',
+    referencia_catastral: '1223344BC1223W0010OP',
+    precio: 1850,
+    superficie: 85,
+    habitaciones: 2,
+    banos: 1,
+    planta: '2ª',
+    ascensor: true,
+    garaje: false,
+    terraza: false,
+    piscina: false,
+    certificado_energetico: 'A',
+    descripcion: 'Piso totalmente amueblado y equipado con excelente gusto en el Eixample Esquerra. Aire acondicionado por conductos, cocina equipada con electrodomésticos de gama alta y balcón exterior.',
+    agente_responsable: 'usr-003',
+    portales_publicados: ['idealista', 'fotocasa'],
+    fotos: [
+      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=1200&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=800&auto=format&fit=crop'
+    ],
+    fecha_alta: '2026-05-02T10:00:00Z',
+    created_at: '2026-05-02T10:00:00Z',
+    updated_at: '2026-05-06T10:00:00Z',
   },
 ];
 
@@ -630,3 +851,149 @@ export const MOCK_DASHBOARD_KPIS = {
 
 // ── Usuario actual (mock auth) ──
 export const MOCK_CURRENT_USER: User = MOCK_USERS[0]; // Carlos Martínez - Director
+
+// ── Conversión determinista a UUID para IDs de mock (necesaria para generateStaticParams y seeding) ──
+export function toUUID(mockId: string | undefined): string | null {
+  if (!mockId) return null;
+  
+  let hash = 0;
+  for (let i = 0; i < mockId.length; i++) {
+    hash = mockId.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hex = Math.abs(hash).toString(16).padStart(12, '0');
+  const uuid = `00000000-0000-0000-0000-${hex}`;
+  
+  return uuid;
+}
+
+// ── Documentos Demo (para el módulo /documents) ──
+export const MOCK_DOCUMENTS: CRMDocument[] = [
+  {
+    id: 'doc-001',
+    agency_id: 'ag-001',
+    lead_id: 'lead-001',
+    name: 'DNI_Elena_Vance_Anverso.pdf',
+    type: 'DNI / Documento de Identidad',
+    url: 'ag-001/leads/lead-001/DNI_Elena_Vance_Anverso.pdf',
+    size: 1048576,
+    status: 'aprobado',
+    visibility: 'publico',
+    metadata: {
+      extracted: true,
+      confidence: 0.98,
+      docType: 'DNI / Documento de Identidad',
+      fields: {
+        'Nombre completo': 'Elena Vance Moreno',
+        'Número documento': '12345678X',
+        'Fecha nacimiento': '15/04/1990',
+        'Nacionalidad': 'Española',
+        'Fecha caducidad': '30/06/2030'
+      }
+    },
+    uploaded_by: 'usr-002',
+    reviewed_by: 'usr-001',
+    created_at: '2026-05-02T10:00:00Z',
+    updated_at: '2026-05-02T11:30:00Z'
+  },
+  {
+    id: 'doc-002',
+    agency_id: 'ag-001',
+    lead_id: 'lead-001',
+    name: 'Nomina_Abril_2026_ElenaVance.pdf',
+    type: 'Nómina Mensual',
+    url: 'ag-001/leads/lead-001/Nomina_Abril_2026_ElenaVance.pdf',
+    size: 2048576,
+    status: 'subido',
+    visibility: 'interno',
+    metadata: {
+      extracted: true,
+      confidence: 0.96,
+      docType: 'Nómina Mensual',
+      fields: {
+        'Empresa': 'Tecnologías Avanzadas S.L.',
+        'CIF': 'B98765432',
+        'Empleado': 'Elena Vance Moreno',
+        'Salario Bruto': '3.500,00 €',
+        'Salario Líquido': '2.780,00 €',
+        'Período': 'Abril 2026'
+      }
+    },
+    uploaded_by: 'usr-002',
+    created_at: '2026-05-06T12:00:00Z',
+    updated_at: '2026-05-06T12:00:00Z'
+  },
+  {
+    id: 'doc-003',
+    agency_id: 'ag-001',
+    operation_id: 'op-001',
+    name: 'Nota_Simple_Reg_Calle_Mayor.pdf',
+    type: 'Nota Simple',
+    url: 'ag-001/ops/op-001/Nota_Simple_Reg_Calle_Mayor.pdf',
+    size: 524288,
+    status: 'pendiente',
+    visibility: 'interno',
+    metadata: {},
+    created_at: '2026-05-05T09:00:00Z',
+    updated_at: '2026-05-05T09:00:00Z'
+  },
+  {
+    id: 'doc-004',
+    agency_id: 'ag-001',
+    operation_id: 'op-002',
+    name: 'Contrato_Reserva_Piso_Chamberi.pdf',
+    type: 'Contrato de Reserva',
+    url: 'ag-001/ops/op-002/Contrato_Reserva_Piso_Chamberi.pdf',
+    size: 3145728,
+    status: 'aprobado',
+    visibility: 'publico',
+    metadata: {
+      extracted: true,
+      confidence: 0.99,
+      docType: 'Contrato de Reserva',
+      fields: {
+        'Vendedor': 'Inmobiliaria Madrid S.A.',
+        'Comprador': 'Marcus Reed',
+        'Importe Reserva': '10.000,00 €',
+        'Fecha Contrato': '04/05/2026'
+      },
+      signatures: {
+        status: 'firmado_completamente',
+        hash_documento: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+        signed_at: '2026-05-04T17:00:00Z'
+      }
+    },
+    uploaded_by: 'usr-003',
+    reviewed_by: 'usr-001',
+    created_at: '2026-05-04T10:00:00Z',
+    updated_at: '2026-05-04T17:15:00Z'
+  },
+  {
+    id: 'doc-005',
+    agency_id: 'ag-001',
+    operation_id: 'op-004',
+    name: 'Recibo_IBI_2025.pdf',
+    type: 'Recibo de IBI',
+    url: 'ag-001/ops/op-004/Recibo_IBI_2025.pdf',
+    size: 786432,
+    status: 'rechazado',
+    visibility: 'interno',
+    metadata: {
+      extracted: true,
+      confidence: 0.95,
+      docType: 'Recibo de IBI',
+      fields: {
+        'Impuesto': 'IBI Urbano',
+        'Ejercicio': '2025',
+        'Referencia catastral': '9876543AA0000B0001XX',
+        'Importe': '542,30 €'
+      },
+      rejection_comment: 'El recibo corresponde al ejercicio 2025. Por favor, suba el del ejercicio corriente 2026.'
+    },
+    uploaded_by: 'usr-004',
+    reviewed_by: 'usr-002',
+    created_at: '2026-05-02T11:00:00Z',
+    updated_at: '2026-05-03T10:00:00Z'
+  }
+];
+
+

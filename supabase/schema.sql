@@ -33,7 +33,7 @@ CREATE TABLE agencies (
 ALTER TABLE agencies ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Agencias pueden ver su propio registro" 
     ON agencies FOR SELECT 
-    USING (id = (auth.jwt()->>'agency_id')::uuid);
+    USING (id = (auth.jwt()->'user_metadata'->>'agency_id')::uuid);
 
 
 -- ==========================================
@@ -58,7 +58,10 @@ CREATE TABLE users (
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Aislamiento por agencia para usuarios" 
     ON users FOR ALL 
-    USING (agency_id = (auth.jwt()->>'agency_id')::uuid);
+    USING (
+        agency_id = (auth.jwt()->'user_metadata'->>'agency_id')::uuid 
+        OR auth.uid() = id
+    );
 
 
 -- ==========================================
@@ -104,7 +107,7 @@ CREATE TABLE leads (
 ALTER TABLE leads ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Aislamiento por agencia para leads" 
     ON leads FOR ALL 
-    USING (agency_id = (auth.jwt()->>'agency_id')::uuid);
+    USING (agency_id = (auth.jwt()->'user_metadata'->>'agency_id')::uuid);
 
 
 -- ==========================================
@@ -137,7 +140,7 @@ CREATE TABLE clients (
 ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Aislamiento por agencia para clientes" 
     ON clients FOR ALL 
-    USING (agency_id = (auth.jwt()->>'agency_id')::uuid);
+    USING (agency_id = (auth.jwt()->'user_metadata'->>'agency_id')::uuid);
 
 
 -- ==========================================
@@ -180,7 +183,7 @@ CREATE TABLE properties (
 ALTER TABLE properties ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Aislamiento por agencia para propiedades" 
     ON properties FOR ALL 
-    USING (agency_id = (auth.jwt()->>'agency_id')::uuid);
+    USING (agency_id = (auth.jwt()->'user_metadata'->>'agency_id')::uuid);
 
 
 -- ==========================================
@@ -217,7 +220,7 @@ CREATE TABLE operations (
 ALTER TABLE operations ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Aislamiento por agencia para operaciones" 
     ON operations FOR ALL 
-    USING (agency_id = (auth.jwt()->>'agency_id')::uuid);
+    USING (agency_id = (auth.jwt()->'user_metadata'->>'agency_id')::uuid);
 
 
 -- ==========================================

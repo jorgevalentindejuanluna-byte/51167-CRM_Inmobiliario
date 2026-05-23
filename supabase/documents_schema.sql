@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS public.documents (
     agency_id UUID NOT NULL REFERENCES public.agencies(id) ON DELETE CASCADE,
     lead_id UUID REFERENCES public.leads(id) ON DELETE CASCADE,
     operation_id UUID REFERENCES public.operations(id) ON DELETE SET NULL,
+    property_id UUID REFERENCES public.properties(id) ON DELETE SET NULL,
     
     name TEXT NOT NULL,
     type TEXT NOT NULL, -- 'dni', 'nomina', 'contrato', 'nota_simple', etc.
@@ -32,7 +33,7 @@ ALTER TABLE public.documents ENABLE ROW LEVEL SECURITY;
 
 -- 3. Políticas RLS (Aislamiento Multiagencia - Regla 3.2)
 CREATE POLICY "Documents isolation by agency" ON public.documents
-    USING (agency_id = (auth.jwt() ->> 'agency_id')::uuid);
+    USING (agency_id = (auth.jwt() -> 'user_metadata' ->> 'agency_id')::uuid);
 
 -- 4. Triggers de updated_at
 CREATE TRIGGER update_documents_updated_at
@@ -47,7 +48,7 @@ INSERT INTO storage.buckets (id, name, public) VALUES ('documents', 'documents',
 CREATE POLICY "Documents storage isolation" ON storage.objects
     FOR ALL USING (
         bucket_id = 'documents' 
-        AND (storage.foldername(name))[1] = (auth.jwt() ->> 'agency_id')
+        AND (storage.foldername(name))[1] = (auth.jwt() -> 'user_metadata' ->> 'agency_id')
     );
 */
 

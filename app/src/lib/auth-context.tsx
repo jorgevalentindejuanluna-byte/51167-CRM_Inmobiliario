@@ -44,7 +44,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // 1. Verificar token con Supabase Auth
       const authData = await supabaseGetUser(accessToken);
       if (!authData || !authData.id) {
-        throw new Error('Sesión inválida');
+        console.warn('Sesión caducada o inválida, redirigiendo a login...');
+        localStorage.removeItem('rts_access_token');
+        setUser(null);
+        setToken(null);
+        if (pathname !== '/login') router.push('/login');
+        return;
       }
 
       // 2. Buscar perfil en public.users vinculado al id de auth
@@ -60,12 +65,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(profile[0]);
         setToken(accessToken);
       } else {
-        // Si no hay perfil pero hay auth, crear uno o manejar error
+        // Si no hay perfil pero hay auth, borrar token y redirigir
         console.warn('Usuario autenticado sin perfil en public.users');
+        localStorage.removeItem('rts_access_token');
         setUser(null);
+        setToken(null);
+        if (pathname !== '/login') {
+          router.push('/login');
+        }
       }
     } catch (e) {
-      console.error('Auth verify failed:', e);
+      console.warn('Auth verify failed, cerrando sesión...', e);
       localStorage.removeItem('rts_access_token');
       setUser(null);
       setToken(null);
@@ -77,7 +87,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     refreshUser();
-  }, [refreshUser]);
+
+    // Listener global para expulsiones por JWT caducado (desde supabase.ts)
+    const handleJwtExpired = () => {
+      console.warn('Cerrando sesión por expiración del token JWT...');
+      localStorage.removeItem('rts_access_token');
+      setUser(null);
+      setToken(null);
+      router.push('/login');
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('rts-jwt-expired', handleJwtExpired);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('rts-jwt-expired', handleJwtExpired);
+      }
+    };
+  }, [refreshUser, router]);
 
   const logout = async () => {
     const t = localStorage.getItem('rts_access_token');

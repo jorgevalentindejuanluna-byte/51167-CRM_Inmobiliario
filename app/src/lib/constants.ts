@@ -12,6 +12,7 @@ export const NAV_ITEMS = [
   { key: 'documents', label: 'Documentos', icon: 'description', path: '/documents' },
   { key: 'invoices', label: 'Facturación', icon: 'receipt_long', path: '/invoices' },
   { key: 'ai', label: 'IA Insights', icon: 'psychology', path: '/ai' },
+  { key: 'ai-urbanismo', label: 'IA Catastro', icon: 'map', path: '/ai-urbanismo-catastro' },
 ] as const;
 
 export const NAV_BOTTOM_ITEMS = [

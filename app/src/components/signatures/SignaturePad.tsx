@@ -7,7 +7,7 @@ interface Point {
   x: number;
   y: number;
   t: number; // Timestamp
-  p?: number; // Pressure
+  p?: number; // Presión
 }
 
 interface SignaturePadProps {
@@ -17,6 +17,7 @@ interface SignaturePadProps {
 
 export default function SignaturePad({ onSave, onClear }: SignaturePadProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [strokes, setStrokes] = useState<Point[]>([]);
   
@@ -27,18 +28,54 @@ export default function SignaturePad({ onSave, onClear }: SignaturePadProps) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2;
+    // Configuración inicial del estilo de trazo (dorado premium del design system)
+    ctx.strokeStyle = '#f2be8c'; 
+    ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-  }, []);
+    
+    // Ajustar el Canvas a alta densidad de píxeles (DPI / DPR) para máxima nitidez
+    const resizeCanvas = () => {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      
+      // Volver a aplicar los estilos tras redimensionar el canvas
+      ctx.scale(dpr, dpr);
+      ctx.strokeStyle = '#f2be8c'; 
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      
+      // Dibujar los trazos previos si el canvas se redimensiona
+      if (strokes.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(strokes[0].x, strokes[0].y);
+        for (let i = 1; i < strokes.length; i++) {
+          ctx.lineTo(strokes[i].x, strokes[i].y);
+        }
+        ctx.stroke();
+      }
+    };
+
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    
+    return () => {
+      window.removeEventListener('resize', resizeCanvas);
+    };
+  }, [strokes]);
 
   const getPos = (e: any) => {
     const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
+    if (!canvas) return { x: 0, y: 0, t: Date.now(), p: 0.5 };
+    
     const rect = canvas.getBoundingClientRect();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    
     return {
       x: clientX - rect.left,
       y: clientY - rect.top,
@@ -48,23 +85,34 @@ export default function SignaturePad({ onSave, onClear }: SignaturePadProps) {
   };
 
   const startDrawing = (e: any) => {
-    setIsDrawing(true);
     const pos = getPos(e);
-    const ctx = canvasRef.current?.getContext('2d');
-    ctx?.beginPath();
-    ctx?.moveTo(pos.x, pos.y);
+    setIsDrawing(true);
+    
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (ctx) {
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+    }
+    
     setStrokes(prev => [...prev, pos]);
   };
 
   const draw = (e: any) => {
     if (!isDrawing) return;
-    e.preventDefault(); // Evitar scroll en táctil
+    
+    // Evitar scroll de la página en dispositivos táctiles mientras se firma
+    if (e.cancelable) e.preventDefault();
+    
     const pos = getPos(e);
-    const ctx = canvasRef.current?.getContext('2d');
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    
     if (ctx) {
       ctx.lineTo(pos.x, pos.y);
       ctx.stroke();
     }
+    
     setStrokes(prev => [...prev, pos]);
   };
 
@@ -76,7 +124,8 @@ export default function SignaturePad({ onSave, onClear }: SignaturePadProps) {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (ctx && canvas) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const rect = canvas.getBoundingClientRect();
+      ctx.clearRect(0, 0, rect.width, rect.height);
     }
     setStrokes([]);
     if (onClear) onClear();
@@ -89,33 +138,37 @@ export default function SignaturePad({ onSave, onClear }: SignaturePadProps) {
   };
 
   return (
-    <div className={styles.container}>
-      <canvas
-        ref={canvasRef}
-        width={400}
-        height={200}
-        className={styles.canvas}
-        onMouseDown={startDrawing}
-        onMouseMove={draw}
-        onMouseUp={stopDrawing}
-        onMouseLeave={stopDrawing}
-        onTouchStart={startDrawing}
-        onTouchMove={draw}
-        onTouchEnd={stopDrawing}
-      />
+    <div className={styles.container} ref={containerRef}>
+      <div className={styles.canvasWrapper}>
+        <canvas
+          ref={canvasRef}
+          className={styles.canvas}
+          onMouseDown={startDrawing}
+          onMouseMove={draw}
+          onMouseUp={stopDrawing}
+          onMouseLeave={stopDrawing}
+          onTouchStart={startDrawing}
+          onTouchMove={draw}
+          onTouchEnd={stopDrawing}
+        />
+      </div>
       <div className={styles.controls}>
-        <button className="btn btn--secondary btn--sm" onClick={clear}>Limpiar</button>
+        <button className="btn btn--secondary btn--sm" onClick={clear}>
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>delete</span>
+          Limpiar Lienzo
+        </button>
         <button 
           className="btn btn--primary btn--sm" 
           onClick={save}
           disabled={strokes.length === 0}
         >
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>verified</span>
           Confirmar Firma
         </button>
       </div>
       <p className={styles.hint}>
-        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>info</span>
-        Firma biométrica: Se registra trazo, velocidad y presión (si el dispositivo lo permite).
+        <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'var(--color-primary)' }}>info</span>
+        Firma biométrica presencial: registrando coordenadas del trazo, velocidad de firma y presión del dispositivo.
       </p>
     </div>
   );

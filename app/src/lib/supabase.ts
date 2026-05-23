@@ -75,7 +75,14 @@ export async function supabaseSelect<T = Record<string, unknown>>(
 
   if (!res.ok) {
     const body = await res.text();
-    console.error(`[Supabase] Error en SELECT ${table}:`, body);
+    // Interceptar JWT caducado silenciosamente y despachar evento global
+    if (res.status === 401 || body.includes('JWT expired')) {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('rts-jwt-expired'));
+      }
+    } else {
+      console.error(`[Supabase] Error en SELECT ${table}:`, body);
+    }
     return [];
   }
 
@@ -107,14 +114,15 @@ export async function supabaseGetById<T = Record<string, unknown>>(
  */
 export async function supabaseInsert<T = Record<string, unknown>>(
   table: string,
-  data: Record<string, unknown> | Record<string, unknown>[]
+  data: Record<string, unknown> | Record<string, unknown>[],
+  token?: string
 ): Promise<T[]> {
   const url = `${SUPABASE_URL}/rest/v1/${table}`;
 
   const res = await fetch(url, {
     method: 'POST',
     headers: {
-      ...getHeaders(),
+      ...getHeaders({ token }),
       'Prefer': 'return=representation',
     },
     body: JSON.stringify(Array.isArray(data) ? data : [data]),
@@ -134,14 +142,15 @@ export async function supabaseInsert<T = Record<string, unknown>>(
 export async function supabaseUpdate<T = Record<string, unknown>>(
   table: string,
   id: string,
-  data: Record<string, unknown>
+  data: Record<string, unknown>,
+  token?: string
 ): Promise<T | null> {
   const url = `${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`;
 
   const res = await fetch(url, {
     method: 'PATCH',
     headers: {
-      ...getHeaders(),
+      ...getHeaders({ token }),
       'Prefer': 'return=representation',
     },
     body: JSON.stringify(data),
@@ -187,7 +196,7 @@ export async function supabaseAuthSignIn(email: string, pass: string) {
     });
 
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error_description || data.error || 'Error en login');
+    if (!response.ok) throw new Error(data.msg || data.error_description || data.error || 'Error en login');
     
     return data; // { access_token, refresh_token, user: { id, email, ... } }
   } catch (error) {
@@ -251,7 +260,7 @@ export async function supabaseUploadFile(
       headers: {
         'apikey': SUPABASE_ANON_KEY,
         'Authorization': `Bearer ${token}`,
-        // El navegador establece el Content-Type correcto para FormData/File
+        'Content-Type': file.type || 'application/octet-stream',
       },
       body: file,
     });
@@ -261,7 +270,7 @@ export async function supabaseUploadFile(
     
     return data; // { Key, Id, ... }
   } catch (error) {
-    console.error('[SupabaseStorage] Upload error:', error);
+    console.warn('[SupabaseStorage] Upload error:', error);
     throw error;
   }
 }

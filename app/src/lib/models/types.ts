@@ -214,6 +214,7 @@ export interface Property {
   ciudad: string;
   provincia: string;
   codigo_postal?: string;
+  referencia_catastral?: string;
   precio: number;
   precio_negociable?: boolean;
   superficie: number;
@@ -224,6 +225,17 @@ export interface Property {
   garaje?: boolean;
   terraza?: boolean;
   piscina?: boolean;
+  calefaccion?: boolean;
+  aire_acondicionado?: boolean;
+  trastero?: boolean;
+  acceso_minusvalidos?: boolean;
+  gimnasio?: boolean;
+  seguridad_24h?: boolean;
+  jardin?: boolean;
+  balcon?: boolean;
+  armarios_empotrados?: boolean;
+  amueblado?: boolean;
+  mascotas_permitidas?: boolean;
   certificado_energetico?: string;
   descripcion?: string;
   propietario_id?: string;
@@ -343,6 +355,7 @@ export interface CRMDocument {
   agency_id: string;
   lead_id?: string;
   operation_id?: string;
+  property_id?: string;
   name: string;
   type: string;
   url: string;

@@ -1,7 +1,7 @@
 .container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - var(--topbar-height) - 2 * var(--space-md));
+  height: 100%;
   overflow: hidden;
 }
 

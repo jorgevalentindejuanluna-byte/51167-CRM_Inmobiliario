@@ -31,6 +31,16 @@ const sanitizeUUID = (id: string | undefined): string => {
 };
 
 export default function PipelinePage() {
+  // Prevenir scroll del body/html, solo scroll en columnas
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, []);
+
   const { data: operations } = useOperations();
   const { data: properties } = useProperties();
   const { data: leads } = useLeads();

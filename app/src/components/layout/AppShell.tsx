@@ -39,7 +39,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           marginTop: 'var(--topbar-height)',
           padding: 'var(--space-md)',
           minHeight: 'calc(100vh - var(--topbar-height))',
-          overflow: 'hidden',
         }}
       >
         {children}

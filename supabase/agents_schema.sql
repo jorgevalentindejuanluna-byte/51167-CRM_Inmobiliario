@@ -89,7 +89,7 @@ CREATE TRIGGER set_agents_updated_at
 ALTER TABLE agents ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Agentes vista agencia" ON agents
-  FOR ALL USING (agency_id = auth.jwt() ->> 'agency_id');
+  FOR ALL USING (agency_id = (auth.jwt() ->> 'agency_id')::uuid);
 
 -- ── Actividad de agente ──
 CREATE TABLE IF NOT EXISTS agent_activity (
@@ -114,7 +114,7 @@ CREATE INDEX idx_agent_activity_fecha ON agent_activity(fecha);
 ALTER TABLE agent_activity ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Actividad vista agencia" ON agent_activity
-  FOR ALL USING (agency_id = auth.jwt() ->> 'agency_id');
+  FOR ALL USING (agency_id = (auth.jwt() ->> 'agency_id')::uuid);
 
 -- ── Asignaciones agente-inmueble ──
 CREATE TABLE IF NOT EXISTS agent_property_assignments (
@@ -135,4 +135,4 @@ CREATE INDEX idx_agent_prop_assign ON agent_property_assignments(agent_id, prope
 ALTER TABLE agent_property_assignments ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Asignaciones vista agencia" ON agent_property_assignments
-  FOR ALL USING (agency_id = auth.jwt() ->> 'agency_id');
+  FOR ALL USING (agency_id = (auth.jwt() ->> 'agency_id')::uuid);

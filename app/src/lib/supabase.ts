@@ -75,12 +75,11 @@ export async function supabaseSelect<T = Record<string, unknown>>(
 
   if (!res.ok) {
     const body = await res.text();
-    // Interceptar JWT caducado silenciosamente y despachar evento global
     if (res.status === 401 || body.includes('JWT expired')) {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('rts-jwt-expired'));
       }
-    } else {
+    } else if (!body.includes('invalid input syntax') && !body.includes('Could not find the table')) {
       console.error(`[Supabase] Error en SELECT ${table}:`, body);
     }
     return [];

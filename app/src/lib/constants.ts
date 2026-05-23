@@ -22,9 +22,6 @@ export const NAV_BOTTOM_ITEMS = [
 ] as const;
 
 export const TOP_QUICK_LINKS = [
-  { key: 'leads', label: 'Leads', path: '/leads' },
-  { key: 'properties', label: 'Inmuebles', path: '/properties' },
-  { key: 'calendar', label: 'Calendario', path: '/calendar' },
 ] as const;
 
 // ── Etiquetas de estados de lead ──

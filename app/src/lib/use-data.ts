@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabaseSelect } from './supabase';
 import { useAuth } from './auth-context';
-import type { Lead, Property, Operation, User, CRMDocument, CRMSignature } from './models/types';
+import type { Lead, Property, Operation, User, CRMDocument, CRMSignature, Agent } from './models/types';
 import {
   MOCK_LEADS,
   MOCK_PROPERTIES,
@@ -13,6 +13,7 @@ import {
   MOCK_ACTIVITY,
   toUUID,
   MOCK_DOCUMENTS,
+  MOCK_AGENTS,
 } from './mock-data';
 
 interface DataState<T> {
@@ -252,6 +253,29 @@ export function useSignatures(operationId: string): DataState<CRMSignature[]> {
     });
     return () => { cancelled = true; };
   }, [token, operationId]);
+
+  return state;
+}
+
+export function useAgents(): DataState<Agent[]> {
+  const { token } = useAuth();
+  const [state, setState] = useState<DataState<Agent[]>>({
+    data: MOCK_AGENTS,
+    loading: true,
+    error: null,
+    source: 'mock',
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchWithFallback<Agent[]>('agents', MOCK_AGENTS, {
+      token,
+      order: { column: 'nombre', ascending: true }
+    }).then(({ data, source }) => {
+      if (!cancelled) setState({ data, loading: false, error: null, source });
+    });
+    return () => { cancelled = true; };
+  }, [token]);
 
   return state;
 }

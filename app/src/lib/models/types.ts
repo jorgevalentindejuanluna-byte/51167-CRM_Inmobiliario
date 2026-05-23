@@ -394,3 +394,67 @@ export interface CRMSignature {
   signed_at?: string;
   expires_at?: string;
 }
+
+// ── Agente inmobiliario (PRD Módulo Agentes) ──
+export type AgentType = 'interno' | 'externo' | 'colaborador' | 'captador' | 'freelance';
+export type AgentStatus = 'activo' | 'inactivo' | 'pendiente_validacion' | 'en_formacion' | 'suspendido' | 'baja_temporal' | 'baja_definitiva' | 'bloqueado';
+
+export interface Agent {
+  id: string;
+  agency_id: string;
+  // Personales
+  nombre: string;
+  apellidos: string;
+  documento_identidad?: string;
+  fecha_nacimiento?: string;
+  telefono: string;
+  email: string;
+  direccion?: string;
+  ciudad?: string;
+  provincia?: string;
+  codigo_postal?: string;
+  foto_url?: string;
+  idiomas?: string[];
+  // Profesionales
+  tipo_agente: AgentType;
+  codigo_interno?: string;
+  oficina?: string;
+  equipo?: string;
+  responsable_id?: string;
+  fecha_alta: string;
+  fecha_baja?: string;
+  estado: AgentStatus;
+  zona_principal?: string;
+  zonas_secundarias?: string[];
+  especializacion?: string[];
+  experiencia_anios?: number;
+  numero_colegiado?: string;
+  numero_api?: string;
+  certificaciones?: string[];
+  nivel_comercial?: number;
+  // Económicos
+  tipo_relacion?: 'autonomo' | 'laboral' | 'freelance' | 'colaborador_externo';
+  porcentaje_comision?: number;
+  comision_fija?: number;
+  comision_captacion?: number;
+  comision_venta?: number;
+  comision_alquiler?: number;
+  comision_exclusiva?: number;
+  cuenta_bancaria?: string;
+  // Acceso
+  email_acceso?: string;
+  rol: UserRole;
+  ultimo_acceso?: string;
+  autenticacion_2fa?: boolean;
+  // Métricas
+  inmuebles_asignados: number;
+  clientes_asignados: number;
+  operaciones_abiertas: number;
+  ventas_cerradas: number;
+  alquileres_cerrados: number;
+  comision_generada: number;
+  objetivo_mensual?: number;
+  cumplimiento_objetivo?: number;
+  created_at: string;
+  updated_at: string;
+}

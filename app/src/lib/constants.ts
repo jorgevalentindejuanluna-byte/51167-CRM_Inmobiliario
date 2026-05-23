@@ -9,6 +9,7 @@ export const NAV_ITEMS = [
   { key: 'leads', label: 'Leads', icon: 'person_search', path: '/leads' },
   { key: 'pipeline', label: 'Pipeline', icon: 'account_tree', path: '/pipeline' },
   { key: 'properties', label: 'Inmuebles', icon: 'domain', path: '/properties' },
+  { key: 'agents', label: 'Agentes', icon: 'badge', path: '/agents' },
   { key: 'documents', label: 'Documentos', icon: 'description', path: '/documents' },
   { key: 'invoices', label: 'Facturación', icon: 'receipt_long', path: '/invoices' },
   { key: 'ai', label: 'IA Insights', icon: 'psychology', path: '/ai' },
@@ -149,3 +150,41 @@ export function formatRelativeTime(date: string): string {
   if (diffDays < 7) return `Hace ${diffDays}d`;
   return formatDate(date);
 }
+
+// ── Agentes ──
+export const AGENT_TYPE_LABELS: Record<string, string> = {
+  interno: 'Interno',
+  externo: 'Externo',
+  colaborador: 'Colaborador',
+  captador: 'Captador',
+  freelance: 'Freelance',
+};
+
+export const AGENT_STATUS_LABELS: Record<string, string> = {
+  activo: 'Activo',
+  inactivo: 'Inactivo',
+  pendiente_validacion: 'Pendiente Validación',
+  en_formacion: 'En Formación',
+  suspendido: 'Suspendido',
+  baja_temporal: 'Baja Temporal',
+  baja_definitiva: 'Baja Definitiva',
+  bloqueado: 'Bloqueado',
+};
+
+export const AGENT_STATUS_COLORS: Record<string, string> = {
+  activo: 'success',
+  inactivo: 'neutral',
+  pendiente_validacion: 'warning',
+  en_formacion: 'info',
+  suspendido: 'error',
+  baja_temporal: 'warning',
+  baja_definitiva: 'error',
+  bloqueado: 'error',
+};
+
+export const AGENT_RELACION_LABELS: Record<string, string> = {
+  autonomo: 'Autónomo',
+  laboral: 'Laboral',
+  freelance: 'Freelance',
+  colaborador_externo: 'Colaborador Externo',
+};

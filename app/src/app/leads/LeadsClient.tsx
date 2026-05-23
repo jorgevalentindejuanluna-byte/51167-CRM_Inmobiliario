@@ -275,7 +275,8 @@ export function LeadsClient() {
         <div className="empty-state">
           <span className="material-symbols-outlined">person_search</span>
           <p>No se encontraron leads con los filtros seleccionados.</p>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -28,3 +28,6 @@ pnpm-debug.log*
 
 # Local agent workspaces/data if necessary
 .agents/
+
+# Documentos PRD (no trackear en git)
+*.docx

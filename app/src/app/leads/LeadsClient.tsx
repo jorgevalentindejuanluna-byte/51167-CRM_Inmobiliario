@@ -223,9 +223,10 @@ export function LeadsClient() {
                 </td>
                 <td>
                   <span className={styles.tempCell}>
-                    {lead.temperatura === 'caliente' && <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#e74c3c' }}>local_fire_department</span>}
-                    {lead.temperatura === 'tibio' && <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#f39c12' }}>cloud</span>}
-                    {lead.temperatura === 'frio' && <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#3498db' }}>ac_unit</span>}
+                    {lead.temperatura === 'caliente' && <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#e74c3c', filter: 'drop-shadow(0 2px 3px rgba(231,76,60,0.5))', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>local_fire_department</span>}
+                    {lead.temperatura === 'tibio' && <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#f39c12', filter: 'drop-shadow(0 2px 3px rgba(243,156,18,0.5))', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>cloud</span>}
+                    {lead.temperatura === 'frio' && <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#3498db', filter: 'drop-shadow(0 2px 3px rgba(52,152,219,0.5))', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>ac_unit</span>}
+                    <span style={{ marginLeft: '6px' }}>{LEAD_TEMP_LABELS[lead.temperatura]}</span>
                   </span>
                 </td>
                 <td>

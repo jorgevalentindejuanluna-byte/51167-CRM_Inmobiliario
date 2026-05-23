@@ -83,7 +83,12 @@ export default function PipelinePage() {
   }, [selectedOpId, selectedOp]);
 
   // Helpers para obtener datos relacionados
-  const getPropertyTitle = (propId: string) => properties.find(p => p.id === propId)?.titulo || 'Inmueble Desconocido';
+  const getProperty = (propId: string) => properties.find(p => p.id === propId);
+  const getPropertyTitle = (propId: string) => getProperty(propId)?.titulo || 'Inmueble Desconocido';
+  const getPropertyImage = (propId: string) => {
+    const prop = getProperty(propId);
+    return prop?.fotos?.[0] || '';
+  };
   const getClientName = (clientId: string) => {
     const lead = leads.find(l => l.id === clientId);
     return lead ? `${lead.nombre} ${lead.apellidos}` : 'Cliente Desconocido';
@@ -299,34 +304,42 @@ export default function PipelinePage() {
                         e.currentTarget.classList.remove(styles.dragging);
                       }}
                     >
-                      <div className={styles.cardHeader}>
-                        <span className={`${styles.cardType} ${styles[op.tipo_operacion]}`}>
-                          {op.tipo_operacion}
-                        </span>
-                        <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--color-text-tertiary)' }}>drag_indicator</span>
-                      </div>
-
-                      <div className={styles.cardTitle}>
-                        {getPropertyTitle(op.propiedad_id!)}
-                      </div>
-                      
-                      <div className={styles.cardPrice}>
-                        {formatCurrency(op.precio_oferta || op.precio_salida || 0)}
-                      </div>
-
-                      <div className={styles.cardClient}>
-                        <span className={`material-symbols-outlined ${styles.cardClientIcon}`}>person</span>
-                        {getClientName(op.cliente_id || op.propietario_id || '')}
-                      </div>
-
-                      <div className={styles.cardFooter}>
-                        <div className={styles.cardAgent} title="Agente Responsable">
-                          <div className={styles.agentAvatar}>
-                            {getAgentInitials(op.agente_id!)}
-                          </div>
+                      {getPropertyImage(op.propiedad_id!) && (
+                        <div className={styles.cardImageWrap}>
+                          <img src={getPropertyImage(op.propiedad_id!)} alt="" className={styles.cardImage} />
                         </div>
-                        <div className={styles.cardDate}>
-                          {formatDate(op.fecha_inicio!)}
+                      )}
+
+                      <div className={styles.cardBody}>
+                        <div className={styles.cardHeader}>
+                          <span className={`${styles.cardType} ${styles[op.tipo_operacion]}`}>
+                            {op.tipo_operacion}
+                          </span>
+                          <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--color-text-tertiary)' }}>drag_indicator</span>
+                        </div>
+
+                        <div className={styles.cardTitle}>
+                          {getPropertyTitle(op.propiedad_id!)}
+                        </div>
+                        
+                        <div className={styles.cardPrice}>
+                          {formatCurrency(op.precio_oferta || op.precio_salida || 0)}
+                        </div>
+
+                        <div className={styles.cardClient}>
+                          <span className={`material-symbols-outlined ${styles.cardClientIcon}`}>person</span>
+                          {getClientName(op.cliente_id || op.propietario_id || '')}
+                        </div>
+
+                        <div className={styles.cardFooter}>
+                          <div className={styles.cardAgent} title="Agente Responsable">
+                            <div className={styles.agentAvatar}>
+                              {getAgentInitials(op.agente_id!)}
+                            </div>
+                          </div>
+                          <div className={styles.cardDate}>
+                            {formatDate(op.fecha_inicio!)}
+                          </div>
                         </div>
                       </div>
                     </div>

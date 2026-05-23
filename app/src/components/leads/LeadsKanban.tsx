@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import type { Lead, LeadEstado } from '@/lib/models/types';
-import { LEAD_ESTADO_LABELS, LEAD_ESTADO_COLORS, LEAD_TIPO_LABELS, LEAD_TEMP_LABELS } from '@/lib/constants';
+import { LEAD_ESTADO_LABELS, LEAD_ESTADO_COLORS, LEAD_TIPO_LABELS, LEAD_TIPO_COLORS, LEAD_TEMP_LABELS } from '@/lib/constants';
 
 interface LeadsKanbanProps {
   leads: Lead[];
@@ -113,7 +113,7 @@ export default function LeadsKanban({ leads, onLeadMoved }: LeadsKanbanProps) {
                     <Link href={`/leads/${lead.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                       <strong style={{ fontSize: '0.9rem', display: 'block' }}>{lead.nombre} {lead.apellidos}</strong>
                     </Link>
-                    <span className="badge badge--outline" style={{ fontSize: '0.65rem', padding: '2px 4px' }}>
+                    <span className="badge" style={{ fontSize: '0.65rem', padding: '2px 4px', background: LEAD_TIPO_COLORS[lead.tipo_lead] || '#95a5a6', color: '#fff' }}>
                       {LEAD_TIPO_LABELS[lead.tipo_lead]}
                     </span>
                   </div>

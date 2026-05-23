@@ -10,6 +10,7 @@ import {
   LEAD_TEMP_LABELS,
   LEAD_ORIGEN_LABELS,
   LEAD_TIPO_LABELS,
+  LEAD_TIPO_COLORS,
 } from '@/lib/constants';
 import type { LeadEstado, LeadTemperatura, LeadTipo } from '@/lib/models/types';
 import styles from './page.module.css';
@@ -215,7 +216,7 @@ export function LeadsClient() {
                   </Link>
                 </td>
                 <td>
-                  <span className="badge badge--neutral">{LEAD_TIPO_LABELS[lead.tipo_lead]}</span>
+                  <span className="badge" style={{ background: LEAD_TIPO_COLORS[lead.tipo_lead] || '#95a5a6', color: '#fff' }}>{LEAD_TIPO_LABELS[lead.tipo_lead]}</span>
                 </td>
                 <td>
                   <span className="text-helper">{LEAD_ORIGEN_LABELS[lead.origen]}</span>

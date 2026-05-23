@@ -20,7 +20,7 @@ export default function PortalPage() {
   if (!client) return <div className={styles.loading}>Cargando portal...</div>;
 
   // Si es vendedor, buscamos su propiedad vinculada
-  if (client.tipo_lead === 'vendedor' || client.tipo_lead === 'propietario') {
+  if (client.tipo_lead === 'vendedor') {
     const property = properties.find(p => p.propietario_id === clientId) || properties[0];
     const sellerOps = operations.filter(o => o.propiedad_id === property?.id);
     

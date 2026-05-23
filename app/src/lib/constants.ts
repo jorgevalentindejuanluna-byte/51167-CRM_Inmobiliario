@@ -71,9 +71,15 @@ export const LEAD_ORIGEN_LABELS: Record<string, string> = {
 export const LEAD_TIPO_LABELS: Record<string, string> = {
   comprador: 'Comprador',
   vendedor: 'Vendedor',
-  propietario: 'Propietario',
   inquilino: 'Inquilino',
   inversor: 'Inversor',
+};
+
+export const LEAD_TIPO_COLORS: Record<string, string> = {
+  comprador: '#e67e22',
+  vendedor: '#27ae60',
+  inversor: '#2980b9',
+  inquilino: '#95a5a6',
 };
 
 // ── Tipos de inmueble ──

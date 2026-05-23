@@ -46,7 +46,6 @@ export type UserRole =
 export type ClientRole =
   | 'comprador'
   | 'vendedor'
-  | 'propietario'
   | 'inquilino'
   | 'inversor';
 
@@ -68,7 +67,7 @@ export interface User {
 }
 
 // ── Lead (5.3 PRD) ──
-export type LeadTipo = 'comprador' | 'vendedor' | 'propietario' | 'inquilino' | 'inversor';
+export type LeadTipo = 'comprador' | 'vendedor' | 'inquilino' | 'inversor';
 
 export type LeadEstado =
   | 'nuevo'
@@ -131,7 +130,7 @@ export interface Lead {
 }
 
 // ── Cliente (5.4 PRD) ──
-export type TipoCliente = 'comprador' | 'vendedor' | 'propietario' | 'inquilino' | 'inversor';
+export type TipoCliente = 'comprador' | 'vendedor' | 'inquilino' | 'inversor';
 
 export interface Client {
   id: string;

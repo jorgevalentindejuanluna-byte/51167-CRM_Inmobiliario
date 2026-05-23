@@ -313,7 +313,7 @@ export const MOCK_LEADS: Lead[] = [
     telefono: '+34 689 012 345',
     email: 'a.rivas@proton.me',
     origen: 'pisos_com',
-    tipo_lead: 'propietario',
+    tipo_lead: 'vendedor',
     tipo_operacion: 'venta',
     zona_interes: 'Moncloa, Madrid',
     urgencia: 'alta',

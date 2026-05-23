@@ -45,7 +45,7 @@ interface UploadedStatus {
 }
 
 export default function LeadDocumentChecklist({ lead }: { lead: Lead }) {
-  const isSeller = lead.tipo_lead === 'vendedor' || lead.tipo_lead === 'propietario';
+  const isSeller = lead.tipo_lead === 'vendedor';
   const isBuyer = lead.tipo_lead === 'comprador' || lead.tipo_lead === 'inversor';
   
   const documents = isSeller ? SELLER_DOCUMENTS : isBuyer ? BUYER_DOCUMENTS : [];

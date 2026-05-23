@@ -223,8 +223,9 @@ export function LeadsClient() {
                 </td>
                 <td>
                   <span className={styles.tempCell}>
-                    <span className={`temp-dot temp-dot--${lead.temperatura}`} />
-                    {LEAD_TEMP_LABELS[lead.temperatura]}
+                    {lead.temperatura === 'caliente' && <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#e74c3c' }}>local_fire_department</span>}
+                    {lead.temperatura === 'tibio' && <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#f39c12' }}>cloud</span>}
+                    {lead.temperatura === 'frio' && <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#3498db' }}>ac_unit</span>}
                   </span>
                 </td>
                 <td>

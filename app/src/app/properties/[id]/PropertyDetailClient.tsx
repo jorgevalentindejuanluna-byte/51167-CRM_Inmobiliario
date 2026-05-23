@@ -46,6 +46,7 @@ export function PropertyDetailClient({ id }: { id: string }) {
 
   return (
     <div className={styles.container}>
+      <div className={styles.stickyHeader}>
       <header className={styles.header}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
@@ -87,8 +88,8 @@ export function PropertyDetailClient({ id }: { id: string }) {
         </div>
       </header>
 
-      {/* TABS DE NAVEGACIÓN (NUEVO) */}
-      <div className={styles.tabsContainer} style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--color-outline-variant)', marginBottom: '1.5rem', overflowX: 'auto' }}>
+      {/* TABS DE NAVEGACIÓN */}
+      <div className={styles.tabsContainer} style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--color-outline-variant)', overflowX: 'auto' }}>
         <button 
           className={`${styles.tabBtn} ${activeTab === 'general' ? styles.activeTab : ''}`} 
           onClick={() => setActiveTab('general')}
@@ -108,7 +109,7 @@ export function PropertyDetailClient({ id }: { id: string }) {
           onClick={() => setActiveTab('documentos')}
           style={{ padding: '0.75rem 1rem', background: 'none', border: 'none', borderBottom: activeTab === 'documentos' ? '2px solid var(--color-primary)' : '2px solid transparent', color: activeTab === 'documentos' ? 'var(--color-primary)' : 'var(--color-text-secondary)', fontWeight: activeTab === 'documentos' ? 600 : 400, cursor: 'pointer', whiteSpace: 'nowrap' }}
         >
-          Gestor Documental
+          Documentación
         </button>
         <button 
           className={`${styles.tabBtn} ${activeTab === 'ia' ? styles.activeTab : ''}`} 
@@ -125,8 +126,9 @@ export function PropertyDetailClient({ id }: { id: string }) {
           Edición
         </button>
       </div>
+      </div>
 
-      <div>
+      <div className={styles.scrollableContent}>
         
         {/* --- PESTAÑA: INFORMACIÓN GENERAL --- */}
         {activeTab === 'general' && (

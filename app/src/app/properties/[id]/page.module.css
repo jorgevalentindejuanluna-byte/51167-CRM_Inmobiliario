@@ -1,8 +1,13 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xl);
-  padding-bottom: var(--space-xxl);
+  height: 100%;
+  overflow: hidden;
+}
+
+.stickyHeader {
+  flex-shrink: 0;
+  padding-bottom: var(--space-xl);
 }
 
 .header {
@@ -138,6 +143,14 @@
 .description {
   color: var(--color-text-secondary);
   line-height: 1.6;
+}
+
+/* ── Scrollable content area ── */
+.scrollableContent {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding-bottom: var(--space-xxl);
 }
 
 /* Right Column */

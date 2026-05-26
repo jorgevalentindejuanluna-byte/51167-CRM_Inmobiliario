@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sendEmailViaSmtp } from '@/lib/email-service';
+import { sendEmailViaSmtp, getAgencySmtpConfig } from '@/lib/email-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +16,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Subject is required' }, { status: 400 });
     }
 
+    let config = smtp_config;
+    if (!config) {
+      const dbConfig = await getAgencySmtpConfig('ag-001');
+      if (dbConfig) config = dbConfig;
+    }
+
     const result = await sendEmailViaSmtp(
       {
         to,
@@ -25,7 +31,7 @@ export async function POST(request: NextRequest) {
         bodyText: body_text || '',
         bodyHtml: body_html,
       },
-      smtp_config || undefined
+      config
     );
 
     if (!result.success) {

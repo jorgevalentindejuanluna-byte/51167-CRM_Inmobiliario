@@ -6,7 +6,12 @@ import { useDashboardKpis } from '@/lib/use-data';
 import { useAuth } from '@/lib/auth-context';
 import styles from './TopBar.module.css';
 
-export default function TopBar({ title: _title }: { title?: string } = {}) {
+interface TopBarProps {
+  title?: string;
+}
+
+export default function TopBar({ title: _title }: TopBarProps) {
+
   const { user, logout } = useAuth();
   const { data: kpis } = useDashboardKpis();
   

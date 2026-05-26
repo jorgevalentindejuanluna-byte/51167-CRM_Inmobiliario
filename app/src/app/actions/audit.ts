@@ -15,7 +15,7 @@ interface AuditEntry {
 
 export async function logAudit(entry: AuditEntry): Promise<void> {
   try {
-    await supabaseInsert('audit_logs', entry as Record<string, unknown>);
+    await supabaseInsert('audit_logs', entry as unknown as Record<string, unknown>);
   } catch (err) {
     console.warn('[Audit] No se pudo registrar en Supabase, almacenando en memoria:', err);
   }

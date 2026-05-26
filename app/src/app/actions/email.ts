@@ -53,13 +53,15 @@ export async function saveEmailAccount(
     }
 
     const result = await supabaseInsert<EmailAccount>('email_accounts', {
-      ...data,
       agency_id: 'ag-001',
-      username: data.smtp_user || data.email,
-      imap_host: '',
-      imap_port: 993,
-      imap_encryption: 'ssl',
+      email: data.email,
+      display_name: data.display_name,
+      smtp_host: data.smtp_host,
+      smtp_port: data.smtp_port,
+      smtp_user: data.smtp_user,
+      smtp_pass: data.smtp_pass,
       smtp_encryption: data.smtp_encryption || 'starttls',
+      provider: data.provider || 'other',
       sync_enabled: true,
     } as any, token);
     return { success: true, data: result[0] };

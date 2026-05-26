@@ -1,6 +1,6 @@
 'use server';
 
-import { supabaseSelect, supabaseInsert, supabaseUpdate } from '@/lib/supabase';
+import { supabaseSelect, supabaseInsert, supabaseUpdate, getHeaders, SUPABASE_URL } from '@/lib/supabase';
 import { sendEmailViaSmtp, getAgencySmtpConfig } from '@/lib/email-service';
 import { MOCK_EMAIL_MESSAGES, MOCK_EMAIL_THREADS, MOCK_EMAIL_ACCOUNTS } from '@/lib/mock-data';
 import type { EmailMessage, EmailThread, EmailAccount, EmailFolder, EmailFlag } from '@/lib/models/types';
@@ -26,24 +26,20 @@ export async function saveEmailAccount(
   token?: string
 ): Promise<{ success: boolean; error?: string; data?: EmailAccount }> {
   try {
+    // Eliminar duplicados existentes con el mismo email
     const existing = await supabaseSelect<EmailAccount>('email_accounts', {
       token,
       eq: ['email', data.email],
     });
     if (existing && existing.length > 0) {
-      const acct = existing[0];
-      const result = await supabaseUpdate<EmailAccount>('email_accounts', acct.id, {
-        display_name: data.display_name,
-        smtp_host: data.smtp_host,
-        smtp_port: data.smtp_port,
-        smtp_encryption: data.smtp_encryption || 'starttls',
-        smtp_user: data.smtp_user,
-        smtp_pass: data.smtp_pass,
-        provider: data.provider || 'other',
-        sync_enabled: true,
-      } as any, token);
-      return { success: true, data: result || existing[0] };
+      for (const acct of existing) {
+        await fetch(`${SUPABASE_URL}/rest/v1/email_accounts?id=eq.${acct.id}`, {
+          method: 'DELETE',
+          headers: { ...getHeaders({ token }), Prefer: 'return=minimal' },
+        });
+      }
     }
+
     const result = await supabaseInsert<EmailAccount>('email_accounts', {
       ...data,
       agency_id: 'ag-001',

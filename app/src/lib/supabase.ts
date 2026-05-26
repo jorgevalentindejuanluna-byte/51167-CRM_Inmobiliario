@@ -8,7 +8,7 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 // ── Headers base para todas las peticiones ──
-function getHeaders(options: { token?: string; isServiceRole?: boolean } = {}): Record<string, string> {
+export function getHeaders(options: { token?: string; isServiceRole?: boolean } = {}): Record<string, string> {
   const key = options.isServiceRole ? (process.env.SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY) : SUPABASE_ANON_KEY;
   const auth = options.token ? `Bearer ${options.token}` : `Bearer ${key}`;
   

@@ -35,17 +35,30 @@ export default function EmailSettingsPage() {
 
   useEffect(() => {
     const saved = localStorage.getItem('smtp_config');
+    let localEmail = '';
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
+        localEmail = parsed.fromEmail || '';
         setForm(prev => ({ ...prev, ...parsed }));
       } catch {}
     }
 
     getEmailAccounts().then(res => {
-      if (res.success && res.data && res.data.length > 0) {
-        setAccounts(res.data);
-        const acct = res.data[0];
+      if (!res.success || !res.data || res.data.length === 0) return;
+
+      // Deduplicar: última cuenta por email (más reciente)
+      const map = new Map<string, any>();
+      for (const acct of res.data) {
+        if (acct.email) map.set(acct.email, acct);
+      }
+      const unique = Array.from(map.values());
+      setAccounts(unique);
+
+      // Cargar desde la cuenta que coincida con localStorage, o la primera
+      const match = localEmail ? unique.find((a: any) => a.email === localEmail) : null;
+      const acct = match || unique[unique.length - 1];
+      if (acct && (!saved || match)) {
         setForm({
           host: acct.smtp_host || '',
           port: acct.smtp_port || 587,

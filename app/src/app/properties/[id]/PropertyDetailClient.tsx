@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useProperties, useOperations, useUsers, saveLocalMock } from '@/lib/use-data';
 import { useAuth } from '@/lib/auth-context';
 import { updateProperty } from '@/app/actions/properties';
+import { toUUID } from '@/lib/mock-data';
 import { showToast } from '@/lib/toast';
 import { formatCurrency, formatDate } from '@/lib/constants';
 import DocumentManager from '@/components/documents/DocumentManager';
@@ -20,7 +21,7 @@ export function PropertyDetailClient({ id }: { id: string }) {
   const { data: users } = useUsers();
   const { data: allOperations } = useOperations();
 
-  const property = allProperties.find(p => p.id === propertyId) || allProperties[0];
+  const property = allProperties.find(p => p.id === propertyId || toUUID(p.id) === propertyId);
   const agent = users.find(u => u.id === property?.agente_responsable);
   const operations = allOperations.filter(op => op.propiedad_id === property?.id);
 
@@ -53,7 +54,7 @@ export function PropertyDetailClient({ id }: { id: string }) {
             <Link href="/properties" style={{ color: 'var(--color-text-tertiary)', textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
               <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>arrow_back</span>
             </Link>
-            <span style={{ color: 'var(--color-text-secondary)' }}>Propiedades / {property.referencia}</span>
+            <span style={{ color: 'var(--color-text-secondary)' }}>Propiedades / {property.referencia} &mdash; {property.titulo}</span>
           </div>
           <h1 className={styles.title}>{property.titulo}</h1>
           <div className={styles.subtitle}>
@@ -164,7 +165,7 @@ export function PropertyDetailClient({ id }: { id: string }) {
               )}
               <div className={styles.description}>
                 {currentProperty.descripcion ? (
-                  currentProperty.descripcion.split('\n').map((paragraph, i) => (
+                  currentProperty.descripcion.split('\n').map((paragraph: string, i: number) => (
                     <p key={i}>{paragraph}</p>
                   ))
                 ) : (
@@ -270,7 +271,7 @@ export function PropertyDetailClient({ id }: { id: string }) {
                 operations.map(op => (
                   <div key={op.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: 'var(--color-surface)', border: '1px solid var(--color-outline-variant)', borderRadius: '12px' }}>
                     <div>
-                      <div style={{ fontWeight: 500 }}>{op.titulo}</div>
+                      <div style={{ fontWeight: 500 }}>{op.tipo_operacion.toUpperCase()} — {op.id.replace('op-', '#OP-')}</div>
                       <div className="text-muted" style={{ fontSize: '0.875rem' }}>Última act: {formatDate(op.updated_at)}</div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -296,8 +297,7 @@ export function PropertyDetailClient({ id }: { id: string }) {
         {activeTab === 'documentos' && (
           <div style={{ width: '100%' }}>
             <DocumentManager 
-              context="property"
-              entityId={currentProperty.id}
+              propertyId={currentProperty.id}
               agencyId={currentProperty.agency_id}
             />
           </div>
@@ -321,13 +321,13 @@ export function PropertyDetailClient({ id }: { id: string }) {
                 setActiveTab('general');
                 
                 // Persist local F5
-                const newProps = allProperties.map(p => p.id === propertyId ? updated : p);
+                const newProps = allProperties.map(p => (p.id === propertyId || toUUID(p.id) === propertyId) ? updated : p);
                 saveLocalMock('properties', newProps);
                 
                 // Server Update
-                const res = await updateProperty(propertyId, updated, token);
+                const res = await updateProperty(propertyId, updated, token ?? undefined);
                 if (!res.success) {
-                  showToast('Error al guardar: ' + res.error, 'error');
+                  showToast('Error al guardar: ' + (res.error || ''), 'error');
                 } else {
                   showToast('Inmueble actualizado correctamente', 'success');
                 }

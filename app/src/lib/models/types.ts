@@ -530,6 +530,84 @@ export interface AgentClientAssignment {
   created_at: string;
 }
 
+// ── Email / Mensajería ──
+export type EmailFolder = 'inbox' | 'sent' | 'drafts' | 'archived' | 'spam' | 'trash';
+export type EmailFlag = 'unread' | 'important' | 'starred' | 'attachment';
+export type EmailEncryption = 'none' | 'ssl' | 'tls' | 'starttls';
+
+export interface EmailAccount {
+  id: string;
+  agency_id: string;
+  user_id: string;
+  email: string;
+  display_name: string;
+  imap_host: string;
+  imap_port: number;
+  imap_encryption: EmailEncryption;
+  smtp_host: string;
+  smtp_port: number;
+  smtp_encryption: EmailEncryption;
+  username: string;
+  provider: 'other' | 'gmail' | 'outlook' | 'yahoo';
+  sync_enabled: boolean;
+  last_sync_at?: string;
+  signature?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EmailAttachment {
+  id: string;
+  message_id: string;
+  filename: string;
+  mime_type: string;
+  size: number;
+  url?: string;
+  created_at: string;
+}
+
+export interface EmailMessage {
+  id: string;
+  agency_id: string;
+  account_id: string;
+  thread_id?: string;
+  folder: EmailFolder;
+  flags: EmailFlag[];
+  from_name: string;
+  from_email: string;
+  to: { name: string; email: string }[];
+  cc?: { name: string; email: string }[];
+  bcc?: { name: string; email: string }[];
+  subject: string;
+  body_text: string;
+  body_html?: string;
+  attachments?: EmailAttachment[];
+  in_reply_to?: string;
+  references?: string[];
+  size: number;
+  internal_date: string;
+  received_at: string;
+  sent_at?: string;
+  is_deleted: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EmailThread {
+  id: string;
+  agency_id: string;
+  subject: string;
+  snippet: string;
+  last_message_at: string;
+  message_count: number;
+  participants: string;
+  folder: EmailFolder;
+  flags: EmailFlag[];
+  is_deleted: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // ── Comisión de agente ──
 export type CommissionEstado = 'calculada' | 'pendiente' | 'validada' | 'aprobada' | 'liquidada' | 'retenida' | 'anulada';
 

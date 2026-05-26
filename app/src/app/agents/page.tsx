@@ -126,7 +126,7 @@ export default function AgentsPage() {
                     <div className="avatar">{agent.nombre[0]}{agent.apellidos[0]}</div>
                     <div>
                       <strong>{agent.nombre} {agent.apellidos}</strong>
-                      <span className="text-helper text-muted">{agent.email}</span>
+                      <span className="text-helper text-muted" style={{ display: 'block' }}>{agent.email}</span>
                     </div>
                   </Link>
                 </td>

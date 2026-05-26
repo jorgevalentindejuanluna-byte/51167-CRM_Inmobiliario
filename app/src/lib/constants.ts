@@ -14,6 +14,7 @@ export const NAV_ITEMS = [
   { key: 'invoices', label: 'Facturación', icon: 'receipt_long', path: '/invoices' },
   { key: 'ai', label: 'IA Insights', icon: 'psychology', path: '/ai' },
   { key: 'ai-urbanismo', label: 'IA Catastro', icon: 'map', path: '/ai-urbanismo-catastro' },
+  { key: 'messages', label: 'Mensajes', icon: 'mail', path: '/messages' },
 ] as const;
 
 export const NAV_BOTTOM_ITEMS = [
@@ -22,8 +23,8 @@ export const NAV_BOTTOM_ITEMS = [
   { key: 'support', label: 'Soporte', icon: 'help', path: '/support' },
 ] as const;
 
-export const TOP_QUICK_LINKS = [
-] as const;
+export const TOP_QUICK_LINKS: { key: string; label: string; icon: string; path: string }[] = [
+];
 
 // ── Etiquetas de estados de lead ──
 export const LEAD_ESTADO_LABELS: Record<string, string> = {
@@ -293,4 +294,39 @@ export const ACTIVITY_RESULTADO_LABELS: Record<string, string> = {
   cliente_perdido: 'Cliente perdido',
   operacion_cerrada: 'Operación cerrada',
   seguimiento_futuro: 'Seguimiento futuro',
+};
+
+// ── Email folders ──
+export const EMAIL_FOLDER_LABELS: Record<string, string> = {
+  inbox: 'Recibidos',
+  sent: 'Enviados',
+  drafts: 'Borradores',
+  archived: 'Archivados',
+  spam: 'Spam',
+  trash: 'Papelera',
+};
+
+export const EMAIL_FOLDER_ICONS: Record<string, string> = {
+  inbox: 'inbox',
+  sent: 'send',
+  drafts: 'drafts',
+  archived: 'archive',
+  spam: 'report',
+  trash: 'delete',
+};
+
+export const EMAIL_FOLDER_COLORS: Record<string, string> = {
+  inbox: 'primary',
+  sent: 'secondary',
+  drafts: 'neutral',
+  archived: 'neutral',
+  spam: 'error',
+  trash: 'error',
+};
+
+export const EMAIL_PROVIDER_LABELS: Record<string, string> = {
+  other: 'Otro',
+  gmail: 'Gmail',
+  outlook: 'Outlook',
+  yahoo: 'Yahoo',
 };

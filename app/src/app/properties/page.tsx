@@ -4,12 +4,14 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useProperties } from '@/lib/use-data';
-import { formatCurrency } from '@/lib/constants';
+import { useProperties, useUsers } from '@/lib/use-data';
+import { formatCurrency, formatDate } from '@/lib/constants';
+import { toUUID } from '@/lib/mock-data';
 import styles from './page.module.css';
 
 export default function PropertiesPage() {
   const { data: properties, source } = useProperties();
+  const { data: users } = useUsers();
 
   const [filterOperation, setFilterOperation] = useState('todas');
   const [filterStatus, setFilterStatus] = useState('todos');
@@ -87,72 +89,86 @@ export default function PropertiesPage() {
 
       {/* Grid de propiedades */}
       <div className={styles.grid}>
-        {filteredProperties.map(property => (
-          <Link href={`/properties/${property.id}`} key={property.id} className={styles.card}>
-            {/* Imagen de Portada o Placeholder */}
-            <div className={styles.imagePlaceholder}>
-              {property.fotos && property.fotos.length > 0 ? (
-                <img 
-                  src={property.fotos[0]} 
-                  alt={property.titulo} 
-                  className={styles.cardImage} 
-                />
-              ) : (
-                <span className={`material-symbols-outlined ${styles.imageIcon}`}>real_estate_agent</span>
-              )}
-              <div className={styles.badges}>
-                <span className={`${styles.badge} ${styles.badgeOperation}`}>
-                  {property.operacion}
-                </span>
-                <span className={`${styles.badge} ${styles.badgeStatus}`} style={{
-                  background: property.estado === 'disponible' ? 'rgba(64, 239, 183, 0.2)' : 
-                              property.estado === 'en_captacion' ? 'rgba(242, 190, 140, 0.2)' : 'rgba(255,255,255,0.1)',
-                  color: property.estado === 'disponible' ? 'var(--color-secondary)' : 
-                         property.estado === 'en_captacion' ? 'var(--color-primary)' : 'var(--color-text-secondary)',
-                  borderColor: property.estado === 'disponible' ? 'rgba(64, 239, 183, 0.3)' : 
-                               property.estado === 'en_captacion' ? 'rgba(242, 190, 140, 0.3)' : 'rgba(255,255,255,0.2)'
-                }}>
-                  {property.estado.replace('_', ' ')}
-                </span>
-              </div>
-            </div>
-
-            {/* Contenido */}
-            <div className={styles.content}>
-              <div className={styles.price}>
-                {formatCurrency(property.precio)}
-                {property.operacion === 'alquiler' && <span style={{fontSize: '1rem', color: 'var(--color-text-secondary)', fontWeight: 'normal'}}>/mes</span>}
-              </div>
-              
-              <div className={styles.titleRow}>
-                <h3 className={styles.cardTitle}>{property.titulo}</h3>
-                <div className={styles.location}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>location_on</span>
-                  {property.zona}, {property.ciudad}
+        {filteredProperties.map(property => {
+          const agent = users.find(u => u.id === property.agente_responsable);
+          return (
+            <Link href={`/properties/${toUUID(property.id) || property.id}`} key={property.id} className={styles.card}>
+              {/* Imagen de Portada o Placeholder */}
+              <div className={styles.imagePlaceholder}>
+                {property.fotos && property.fotos.length > 0 ? (
+                  <img 
+                    src={property.fotos[0]} 
+                    alt={property.titulo} 
+                    className={styles.cardImage} 
+                  />
+                ) : (
+                  <span className={`material-symbols-outlined ${styles.imageIcon}`}>real_estate_agent</span>
+                )}
+                <div className={styles.badges}>
+                  <span className={`${styles.badge} ${styles.badgeOperation}`}>
+                    {property.operacion}
+                  </span>
+                  <span className={`${styles.badge} ${styles.badgeStatus}`} style={{
+                    background: property.estado === 'disponible' ? 'rgba(64, 239, 183, 0.2)' : 
+                                property.estado === 'en_captacion' ? 'rgba(242, 190, 140, 0.2)' : 'rgba(255,255,255,0.1)',
+                    color: property.estado === 'disponible' ? 'var(--color-secondary)' : 
+                           property.estado === 'en_captacion' ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                    borderColor: property.estado === 'disponible' ? 'rgba(64, 239, 183, 0.3)' : 
+                                 property.estado === 'en_captacion' ? 'rgba(242, 190, 140, 0.3)' : 'rgba(255,255,255,0.2)'
+                  }}>
+                    {property.estado.replace('_', ' ')}
+                  </span>
                 </div>
               </div>
 
-              <div className={styles.features}>
-                <div className={styles.feature} title="Superficie">
-                  <span className={`material-symbols-outlined ${styles.featureIcon}`}>straighten</span>
-                  {property.superficie} m²
+              {/* Contenido */}
+              <div className={styles.content}>
+                <div className={styles.price}>
+                  {formatCurrency(property.precio)}
+                  {property.operacion === 'alquiler' && <span style={{fontSize: '1rem', color: 'var(--color-text-secondary)', fontWeight: 'normal'}}>/mes</span>}
                 </div>
-                {property.habitaciones && (
-                  <div className={styles.feature} title="Habitaciones">
-                    <span className={`material-symbols-outlined ${styles.featureIcon}`}>bed</span>
-                    {property.habitaciones}
+                
+                <div className={styles.titleRow}>
+                  <h3 className={styles.cardTitle}>{property.titulo}</h3>
+                  <div className={styles.location}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>location_on</span>
+                    {property.zona}, {property.ciudad}
                   </div>
-                )}
-                {property.banos && (
-                  <div className={styles.feature} title="Baños">
-                    <span className={`material-symbols-outlined ${styles.featureIcon}`}>shower</span>
-                    {property.banos}
+                </div>
+
+                <div className={styles.features}>
+                  <div className={styles.feature} title="Superficie">
+                    <span className={`material-symbols-outlined ${styles.featureIcon}`}>straighten</span>
+                    {property.superficie} m²
                   </div>
-                )}
+                  {property.habitaciones && (
+                    <div className={styles.feature} title="Habitaciones">
+                      <span className={`material-symbols-outlined ${styles.featureIcon}`}>bed</span>
+                      {property.habitaciones}
+                    </div>
+                  )}
+                  {property.banos && (
+                    <div className={styles.feature} title="Baños">
+                      <span className={`material-symbols-outlined ${styles.featureIcon}`}>shower</span>
+                      {property.banos}
+                    </div>
+                  )}
+                </div>
+
+                <div className={styles.cardFooter}>
+                  <div className={styles.footerItem}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>person</span>
+                    {agent ? `${agent.nombre} ${agent.apellidos}` : 'Sin agente'}
+                  </div>
+                  <div className={styles.footerItem}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>calendar_today</span>
+                    {formatDate(property.fecha_alta)}
+                  </div>
+                </div>
               </div>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          );
+        })}
 
         {filteredProperties.length === 0 && (
           <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)' }}>

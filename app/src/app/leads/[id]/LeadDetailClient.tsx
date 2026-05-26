@@ -60,9 +60,9 @@ export function LeadDetailClient({ id }: { id: string }) {
     saveLocalMock('leads', leads);
 
     // Call server action for persistence
-    const res = await updateLead(lead.id, editedLead, token);
+    const res = await updateLead(lead.id, editedLead, token ?? undefined);
     if (!res.success) {
-      showToast('Error al guardar los cambios: ' + res.error, 'error');
+      showToast('Error al guardar los cambios: ' + (res.error || ''), 'error');
     } else {
       showToast('Cambios guardados correctamente', 'success');
     }
@@ -253,7 +253,7 @@ export function LeadDetailClient({ id }: { id: string }) {
                 {isEditing ? (
                   <select value={editedLead.agente_asignado || ''} onChange={(e) => setEditedLead({...editedLead, agente_asignado: e.target.value})} style={{ padding: '4px', width: '100%', borderRadius: '4px', border: '1px solid var(--color-outline)' }}>
                     <option value="">Sin asignar</option>
-                    {users.filter(u => u.rol === 'agente' || u.rol === 'admin').map(u => (
+                    {users.filter(u => u.rol === 'agente' || u.rol === 'director_comercial' || u.rol === 'admin_agencia').map(u => (
                       <option key={u.id} value={u.id}>{u.nombre} {u.apellidos}</option>
                     ))}
                   </select>

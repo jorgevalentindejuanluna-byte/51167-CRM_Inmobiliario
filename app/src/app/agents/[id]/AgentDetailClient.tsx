@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useAgents, useAgentActivities, useAgentProperties, useAgentClients, useAgentCommissions } from '@/lib/use-data';
+import { toUUID, MOCK_PROPERTIES } from '@/lib/mock-data';
 import {
   AGENT_TYPE_LABELS, AGENT_STATUS_LABELS, AGENT_STATUS_COLORS, AGENT_RELACION_LABELS,
   ACTIVITY_TIPO_LABELS, ACTIVITY_TIPO_ICONS, ACTIVITY_PRIORIDAD_LABELS,
@@ -58,6 +59,8 @@ export default function AgentDetailClient({ id }: { id: string }) {
   const [propOpFilter, setPropOpFilter] = useState('');
   const [propSortField, setPropSortField] = useState('fecha_asignacion');
   const [propSortDir, setPropSortDir] = useState<'asc'|'desc'>('desc');
+  const [selectedPropId, setSelectedPropId] = useState<string | null>(null);
+  const selectedProperty = selectedPropId ? MOCK_PROPERTIES.find(p => p.id === selectedPropId) : undefined;
 
   // ── Filters: Clientes ──
   const [cliSearch, setCliSearch] = useState('');
@@ -106,9 +109,16 @@ export default function AgentDetailClient({ id }: { id: string }) {
     if (propTipoFilter) items = items.filter(p => p.tipo_asignacion === propTipoFilter);
     if (propOpFilter) items = items.filter(p => p.property_operacion === propOpFilter);
     items.sort((a, b) => {
-      const va = propSortField === 'property_precio' ? (a.property_precio || 0) : new Date(a.fecha_asignacion).getTime();
-      const vb = propSortField === 'property_precio' ? (b.property_precio || 0) : new Date(b.fecha_asignacion).getTime();
-      return propSortDir === 'asc' ? va - vb : vb - va;
+      const dir = propSortDir === 'asc' ? 1 : -1;
+      switch (propSortField) {
+        case 'property_precio': return dir * ((a.property_precio || 0) - (b.property_precio || 0));
+        case 'fecha_asignacion': return dir * (new Date(a.fecha_asignacion).getTime() - new Date(b.fecha_asignacion).getTime());
+        case 'property_zona': return dir * ((a.property_zona || '').localeCompare(b.property_zona || ''));
+        case 'property_operacion': return dir * ((a.property_operacion || '').localeCompare(b.property_operacion || ''));
+        case 'tipo_asignacion': return dir * ((a.tipo_asignacion || '').localeCompare(b.tipo_asignacion || ''));
+        case 'porcentaje_comision': return dir * ((a.porcentaje_comision || 0) - (b.porcentaje_comision || 0));
+        default: return dir * (a.property_titulo || '').localeCompare(b.property_titulo || '');
+      }
     });
     return items;
   }, [properties, propSearch, propTipoFilter, propOpFilter, propSortField, propSortDir]);
@@ -366,33 +376,80 @@ export default function AgentDetailClient({ id }: { id: string }) {
                 <p>Sin inmuebles asignados</p>
               </div>
             ) : (
-              <div className="table-wrap">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <SortHeader label="Inmueble" field="property_titulo" sortField={propSortField} sortDir={propSortDir} onSort={(f) => toggleSort(f, propSortField, propSortDir, setPropSortField, setPropSortDir)} />
-                      <th>Zona</th>
-                      <SortHeader label="Precio" field="property_precio" sortField={propSortField} sortDir={propSortDir} onSort={(f) => toggleSort(f, propSortField, propSortDir, setPropSortField, setPropSortDir)} />
-                      <th>Operación</th>
-                      <th>Rol</th>
-                      <th>Comisión</th>
-                      <SortHeader label="Asignado" field="fecha_asignacion" sortField={propSortField} sortDir={propSortDir} onSort={(f) => toggleSort(f, propSortField, propSortDir, setPropSortField, setPropSortDir)} />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredProperties.map(p => (
-                      <tr key={p.id}>
-                        <td><Link href={`/properties/${p.property_id}`} className="link">{p.property_titulo}</Link></td>
-                        <td>{p.property_zona || '—'}</td>
-                        <td>{p.property_precio ? formatCurrency(p.property_precio) : '—'}</td>
-                        <td><span className="capitalize">{p.property_operacion || '—'}</span></td>
-                        <td><span className="badge badge--info">{ASIGNACION_TIPO_LABELS[p.tipo_asignacion]}</span></td>
-                        <td>{p.porcentaje_comision ? `${p.porcentaje_comision}%` : '—'}</td>
-                        <td className="text-helper text-muted">{formatDate(p.fecha_asignacion)}</td>
+              <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'flex-start' }}>
+                <div className="table-wrap" style={{ flex: selectedPropId ? '0 0 60%' : '1', minWidth: 0, transition: 'flex 0.2s' }}>
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '32px' }}></th>
+                        <SortHeader label="Inmueble" field="property_titulo" sortField={propSortField} sortDir={propSortDir} onSort={(f) => toggleSort(f, propSortField, propSortDir, setPropSortField, setPropSortDir)} />
+                        <SortHeader label="Zona" field="property_zona" sortField={propSortField} sortDir={propSortDir} onSort={(f) => toggleSort(f, propSortField, propSortDir, setPropSortField, setPropSortDir)} />
+                        <SortHeader label="Precio" field="property_precio" sortField={propSortField} sortDir={propSortDir} onSort={(f) => toggleSort(f, propSortField, propSortDir, setPropSortField, setPropSortDir)} />
+                        <SortHeader label="Operación" field="property_operacion" sortField={propSortField} sortDir={propSortDir} onSort={(f) => toggleSort(f, propSortField, propSortDir, setPropSortField, setPropSortDir)} />
+                        <SortHeader label="Rol" field="tipo_asignacion" sortField={propSortField} sortDir={propSortDir} onSort={(f) => toggleSort(f, propSortField, propSortDir, setPropSortField, setPropSortDir)} />
+                        <SortHeader label="Comisión" field="porcentaje_comision" sortField={propSortField} sortDir={propSortDir} onSort={(f) => toggleSort(f, propSortField, propSortDir, setPropSortField, setPropSortDir)} />
+                        <SortHeader label="Asignado" field="fecha_asignacion" sortField={propSortField} sortDir={propSortDir} onSort={(f) => toggleSort(f, propSortField, propSortDir, setPropSortField, setPropSortDir)} />
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {filteredProperties.map(p => {
+                        const isSelected = selectedPropId === p.property_id;
+                        return (
+                          <tr key={p.id} onClick={() => setSelectedPropId(isSelected ? null : p.property_id)} style={{ cursor: 'pointer' }}>
+                            <td style={{ textAlign: 'center' }}>
+                              {isSelected && <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#22c55e', verticalAlign: 'middle' }}>check_circle</span>}
+                            </td>
+                            <td className="link">{p.property_titulo}</td>
+                            <td>{p.property_zona || '—'}</td>
+                            <td>{p.property_precio ? formatCurrency(p.property_precio) : '—'}</td>
+                            <td><span className="capitalize">{p.property_operacion || '—'}</span></td>
+                            <td><span className="badge badge--info">{ASIGNACION_TIPO_LABELS[p.tipo_asignacion]}</span></td>
+                            <td>{p.porcentaje_comision ? `${p.porcentaje_comision}%` : '—'}</td>
+                            <td className="text-helper text-muted">{formatDate(p.fecha_asignacion)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {selectedPropId && selectedProperty && (
+                  <div style={{ flex: '0 0 calc(40% - var(--space-md))', minWidth: 0, background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', position: 'sticky', top: 'var(--space-md)' }}>
+                    <div style={{ height: '160px', background: 'linear-gradient(135deg, var(--color-surface-hover) 0%, var(--color-bg-base) 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+                      {selectedProperty.fotos && selectedProperty.fotos.length > 0 ? (
+                        <img src={selectedProperty.fotos[0]} alt={selectedProperty.titulo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <span className="material-symbols-outlined" style={{ fontSize: '3rem', color: 'var(--color-text-tertiary)', opacity: 0.5 }}>real_estate_agent</span>
+                      )}
+                      <button onClick={() => setSelectedPropId(null)} style={{ position: 'absolute', top: '8px', right: '8px', width: '28px', height: '28px', borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.5)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>✕</button>
+                      <div style={{ position: 'absolute', bottom: '8px', left: '8px', display: 'flex', gap: '4px' }}>
+                        <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', background: 'rgba(0,0,0,0.6)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>{selectedProperty.operacion}</span>
+                        <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', background: selectedProperty.estado === 'disponible' ? 'rgba(64, 239, 183, 0.2)' : 'rgba(255,255,255,0.1)', color: selectedProperty.estado === 'disponible' ? 'var(--color-secondary)' : 'var(--color-text-secondary)', border: '1px solid rgba(255,255,255,0.2)' }}>{selectedProperty.estado.replace('_', ' ')}</span>
+                      </div>
+                    </div>
+                    <div style={{ padding: 'var(--space-md)', display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+                      <div style={{ fontFamily: 'var(--font-heading)', fontSize: '1.3rem', fontWeight: 700, color: 'var(--color-primary)' }}>{formatCurrency(selectedProperty.precio)}{selectedProperty.operacion === 'alquiler' && <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 'normal' }}>/mes</span>}</div>
+                      <h3 style={{ fontWeight: 600, fontSize: '1rem', margin: 0 }}>{selectedProperty.titulo}</h3>
+                      <div style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>location_on</span>
+                        {selectedProperty.zona}, {selectedProperty.ciudad}
+                      </div>
+                      <div style={{ display: 'flex', gap: 'var(--space-md)', paddingTop: 'var(--space-sm)', borderTop: '1px solid var(--color-border)', fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span className="material-symbols-outlined" style={{ fontSize: '16px' }}>straighten</span>{selectedProperty.superficie} m²</span>
+                        {selectedProperty.habitaciones && <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span className="material-symbols-outlined" style={{ fontSize: '16px' }}>bed</span>{selectedProperty.habitaciones}</span>}
+                        {selectedProperty.banos && <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span className="material-symbols-outlined" style={{ fontSize: '16px' }}>shower</span>{selectedProperty.banos}</span>}
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--color-text-tertiary)', paddingTop: 'var(--space-xs)' }}>
+                        <span>Ref: {selectedProperty.referencia}</span>
+                        <span>Alta: {formatDate(selectedProperty.fecha_alta)}</span>
+                      </div>
+                      <Link href={`/properties/${toUUID(selectedProperty.id) || selectedProperty.id}`} className="btn btn--primary" style={{ width: '100%', justifyContent: 'center', marginTop: 'var(--space-sm)' }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>open_in_new</span>
+                        Ver ficha completa
+                      </Link>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

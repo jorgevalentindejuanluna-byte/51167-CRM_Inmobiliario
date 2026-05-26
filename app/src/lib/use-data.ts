@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabaseSelect } from './supabase';
 import { useAuth } from './auth-context';
-import type { Lead, Property, Operation, User, CRMDocument, CRMSignature, Agent, AgentActivity, AgentPropertyAssignment, AgentClientAssignment, AgentCommission } from './models/types';
+import type { Lead, Property, Operation, User, CRMDocument, CRMSignature, Agent, AgentActivity, AgentPropertyAssignment, AgentClientAssignment, AgentCommission, EmailThread, EmailMessage, EmailFolder } from './models/types';
 import {
   MOCK_LEADS,
   MOCK_PROPERTIES,
@@ -18,6 +18,8 @@ import {
   MOCK_AGENT_PROPERTIES,
   MOCK_AGENT_CLIENTS,
   MOCK_AGENT_COMMISSIONS,
+  MOCK_EMAIL_THREADS,
+  MOCK_EMAIL_MESSAGES,
 } from './mock-data';
 
 interface DataState<T> {
@@ -226,6 +228,62 @@ export function useDocuments(filters: { lead_id?: string; operation_id?: string;
     });
     return () => { cancelled = true; };
   }, [token, filters.lead_id, filters.operation_id, filters.property_id]);
+
+  return state;
+}
+
+// ── Hook para Email Threads ──
+export function useEmailThreads(folder?: EmailFolder): DataState<EmailThread[]> {
+  const { token } = useAuth();
+  const [state, setState] = useState<DataState<EmailThread[]>>({
+    data: [],
+    loading: true,
+    error: null,
+    source: 'mock',
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchThreads = async () => {
+      await new Promise(r => setTimeout(r, 300));
+      if (cancelled) return;
+      let data = MOCK_EMAIL_THREADS;
+      if (folder) data = data.filter(t => t.folder === folder);
+      data.sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
+      if (!cancelled) {
+        setState({ data, loading: false, error: null, source: 'mock' });
+      }
+    };
+    fetchThreads();
+    return () => { cancelled = true; };
+  }, [token, folder]);
+
+  return state;
+}
+
+// ── Hook para los mensajes de un hilo ──
+export function useEmailThreadMessages(threadId: string | undefined): DataState<EmailMessage[]> {
+  const { token } = useAuth();
+  const [state, setState] = useState<DataState<EmailMessage[]>>({
+    data: [],
+    loading: true,
+    error: null,
+    source: 'mock',
+  });
+
+  useEffect(() => {
+    if (!threadId) return;
+    let cancelled = false;
+    const fetchMessages = async () => {
+      await new Promise(r => setTimeout(r, 300));
+      const data = MOCK_EMAIL_MESSAGES.filter(m => m.thread_id === threadId);
+      if (!cancelled) {
+        setState({ data, loading: false, error: null, source: 'mock' });
+      }
+    };
+    fetchMessages();
+    return () => { cancelled = true; };
+  }, [token, threadId]);
 
   return state;
 }

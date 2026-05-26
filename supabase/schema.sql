@@ -240,3 +240,24 @@ CREATE TRIGGER update_leads_modtime BEFORE UPDATE ON leads FOR EACH ROW EXECUTE 
 CREATE TRIGGER update_clients_modtime BEFORE UPDATE ON clients FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_properties_modtime BEFORE UPDATE ON properties FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_operations_modtime BEFORE UPDATE ON operations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ==========================================
+-- AUDIT LOGS (Registro de actividad de usuario)
+-- ==========================================
+CREATE TABLE audit_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_name TEXT NOT NULL,
+    accion TEXT NOT NULL,
+    entidad TEXT NOT NULL,
+    entidad_id TEXT,
+    detalle JSONB DEFAULT '{}'::jsonb,
+    ip_address TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Aislamiento por agencia para audit_logs" 
+    ON audit_logs FOR ALL 
+    USING (agency_id = (auth.jwt()->'user_metadata'->>'agency_id')::uuid);

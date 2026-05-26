@@ -2,12 +2,12 @@
 
 import { supabaseServer } from '@/lib/supabase-server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import type { IbiEstimation } from '@/lib/models/catastro_types';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-// Usamos gemini-1.5-pro porque flash puede tener alucinaciones con tasas fiscales concretas si no hace una buena búsqueda
-const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' }); 
+const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
 
-export async function getIbiEstimation(municipality: string, province: string, cadastralValueStr: string) {
+export async function getIbiEstimation(municipality: string, province: string, cadastralValueStr: string): Promise<{ success: boolean; error?: string; data?: IbiEstimation }> {
   try {
     const cadastralValue = parseFloat(cadastralValueStr);
     if (isNaN(cadastralValue) || cadastralValue <= 0) {
@@ -15,11 +15,13 @@ export async function getIbiEstimation(municipality: string, province: string, c
     }
 
     const currentYear = new Date().getFullYear().toString();
-    const cleanMunicipality = municipality.trim().toUpperCase();
-    const cleanProvince = province.trim().toUpperCase();
+    const cleanMunicipality = municipality.trim().toLowerCase();
+    const cleanProvince = province.trim().toLowerCase();
 
-    // 1. Revisar Caché
-    const { data: cached } = await supabaseServer
+    let urbanRate = 0.4;
+    let source = '';
+
+    const { data: existing } = await supabaseServer
       .from('ibi_tax_cache')
       .select('*')
       .eq('municipality', cleanMunicipality)
@@ -27,25 +29,24 @@ export async function getIbiEstimation(municipality: string, province: string, c
       .eq('fiscal_year', currentYear)
       .single();
 
-    let urbanRate = cached?.urban_rate;
-    let source = cached?.source_url || 'Memoria de caché IA';
-
-    if (!urbanRate) {
-      // 2. Extraer usando Gemini
+    if (existing?.urban_rate) {
+      urbanRate = existing.urban_rate;
+      source = existing.source_url;
+    } else {
       const prompt = `
-        Eres un experto en fiscalidad local en España.
-        Necesito saber el tipo impositivo aplicable para el Impuesto sobre Bienes Inmuebles (IBI) de naturaleza URBANA 
-        en el municipio de ${cleanMunicipality} (provincia de ${cleanProvince}) para el año ${currentYear} o el último conocido.
-        
-        Responde ÚNICAMENTE con un JSON estrictamente formateado de la siguiente manera, sin markdown ni explicaciones adicionales:
+        Eres un experto en fiscalidad inmobiliaria española. Dado un municipio y provincia, busca el tipo impositivo del IBI (Impuesto sobre Bienes Inmuebles) urbano.
+        Municipio: ${municipality}
+        Provincia: ${province}
+        Año fiscal: ${currentYear}
+
+        Devuelve **SOLO** un JSON válido con esta estructura exacta:
         {
-          "urban_rate": 0.400,
-          "rustic_rate": 0.300,
-          "source_url": "URL oficial del ayuntamiento o fuente donde se encontró",
-          "confidence_score": 90,
-          "found": true
+          "found": true/false,
+          "urban_rate": número (el tipo impositivo en %, ej: 0.4 significa 0.4%),
+          "source_url": "URL de la fuente",
+          "confidence_score": número del 1 al 100
         }
-        
+
         Si no puedes encontrar el dato o no estás seguro, pon "found": false y los rates a null.
         El urban_rate suele ser un número entre 0.4 y 1.1 (representa el porcentaje).
       `;
@@ -59,7 +60,6 @@ export async function getIbiEstimation(municipality: string, province: string, c
           urbanRate = aiData.urban_rate;
           source = aiData.source_url || 'Búsqueda IA';
 
-          // Guardar en caché
           await supabaseServer.from('ibi_tax_cache').insert({
             municipality: cleanMunicipality,
             province: cleanProvince,
@@ -78,8 +78,6 @@ export async function getIbiEstimation(municipality: string, province: string, c
       }
     }
 
-    // 3. Cálculo Matemático
-    // urbanRate suele venir como porcentaje (ej. 0.4), por tanto la cuota es (Valor Catastral * (urbanRate / 100))
     const expectedTax = cadastralValue * (urbanRate / 100);
 
     return {
@@ -87,10 +85,11 @@ export async function getIbiEstimation(municipality: string, province: string, c
       data: {
         fiscal_year: currentYear,
         urban_rate: urbanRate,
+        rustic_rate: null,
         cadastral_value_used: cadastralValue,
         estimated_amount: expectedTax,
         source_url: source,
-        status: 'estimated'
+        status: 'estimated',
       }
     };
 

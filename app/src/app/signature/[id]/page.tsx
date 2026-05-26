@@ -58,6 +58,7 @@ export default function BiometricSignaturePage({
   const [step, setStep] = useState<Step>('summary');
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<SignResult | null>(null);
+  const [signedDocUrl, setSignedDocUrl] = useState('');
   const [signerDocument, setSignerDocument] = useState('');
 
   useEffect(() => {
@@ -151,7 +152,7 @@ export default function BiometricSignaturePage({
             request={request}
             submitting={submitting}
             onBack={() => setStep('summary')}
-            onSubmit={async (strokes) => {
+            onSubmit={async (strokes, canvasImage) => {
               setSubmitting(true);
               try {
                 const res = await fetch(`/api/signatures/${signatureId}/sign`, {
@@ -159,6 +160,7 @@ export default function BiometricSignaturePage({
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                     strokes,
+                    signature_image: canvasImage,
                     signer_id: signerDocument || undefined,
                   }),
                 });
@@ -168,8 +170,9 @@ export default function BiometricSignaturePage({
                   throw new Error(errData.error || 'Error al guardar la firma');
                 }
 
-                const data: SignResult = await res.json();
-                setResult(data);
+                const data = await res.json();
+                setResult(data as SignResult);
+                setSignedDocUrl(data.signed_document_url || '');
                 setStep('confirm');
               } catch (err: any) {
                 setError(err.message || 'Error al procesar la firma');
@@ -181,7 +184,7 @@ export default function BiometricSignaturePage({
         )}
 
         {step === 'confirm' && result && (
-          <ConfirmStep request={request} result={result} />
+          <ConfirmStep request={request} result={result} signedDocUrl={signedDocUrl} />
         )}
       </div>
 
@@ -269,7 +272,7 @@ function SignStep({
   request: SignatureRequest;
   submitting: boolean;
   onBack: () => void;
-  onSubmit: (strokes: StrokePoint[]) => void;
+  onSubmit: (strokes: StrokePoint[], canvasImage?: string) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -379,7 +382,9 @@ function SignStep({
 
   const handleSubmit = () => {
     if (strokes.length < 2) return;
-    onSubmit(strokes);
+    const canvas = canvasRef.current;
+    const canvasImage = canvas ? canvas.toDataURL('image/png') : undefined;
+    onSubmit(strokes, canvasImage);
   };
 
   return (
@@ -450,9 +455,11 @@ function SignStep({
 function ConfirmStep({
   request,
   result,
+  signedDocUrl,
 }: {
   request: SignatureRequest;
   result: SignResult;
+  signedDocUrl?: string;
 }) {
   const durationSeconds = (result.biometric_summary.duration_ms / 1000).toFixed(1);
   const signedDate = new Date(result.document.signed_at).toLocaleString('es-ES', {
@@ -544,13 +551,36 @@ function ConfirmStep({
         <p>Firma biométrica válida según el Reglamento eIDAS (UE) N.º 910/2014. Los datos biométricos y hashes han sido sellados en la base de datos.</p>
       </div>
 
-      <button
-        className={`btn btn--primary btn--lg ${styles.fullWidth}`}
-        onClick={() => window.print()}
-      >
-        <span className="material-symbols-outlined">print</span>
-        Imprimir Comprobante
-      </button>
+      <div className={styles.actions}>
+        {signedDocUrl && (
+          <a
+            href={signedDocUrl}
+            target="_blank"
+            className={`btn btn--secondary btn--lg ${styles.fullWidth}`}
+            style={{ textDecoration: 'none' }}
+          >
+            <span className="material-symbols-outlined">download</span>
+            Descargar Documento Firmado
+          </a>
+        )}
+        <button
+          className={`btn btn--primary btn--lg ${styles.fullWidth}`}
+          onClick={() => window.print()}
+        >
+          <span className="material-symbols-outlined">print</span>
+          Imprimir Comprobante
+        </button>
+        {request.document?.id && (
+          <a
+            href="/documents"
+            className={`btn btn--ghost btn--lg ${styles.fullWidth}`}
+            style={{ textDecoration: 'none' }}
+          >
+            <span className="material-symbols-outlined">arrow_back</span>
+            Volver al CRM
+          </a>
+        )}
+      </div>
     </div>
   );
 }

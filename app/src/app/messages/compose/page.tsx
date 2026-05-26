@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { sendEmail } from '@/app/actions/email';
+import { sendEmail, getEmailAccounts } from '@/app/actions/email';
 import styles from './page.module.css';
 
 export default function ComposePage() {
@@ -22,19 +22,44 @@ export default function ComposePage() {
     }
     setSending(true);
     setError('');
+
     const toList = to.split(',').map(e => {
       const trimmed = e.trim();
       return trimmed.includes('<')
         ? { name: trimmed.split('<')[0].trim(), email: trimmed.split('<')[1].replace('>', '').trim() }
         : { name: trimmed, email: trimmed };
     });
-    const res = await sendEmail({ to: toList, subject, body_text: body });
+
+    // Try to get SMTP config from saved account
+    let smtpConfig = undefined;
+    try {
+      const accounts = await getEmailAccounts();
+      if (accounts.success && accounts.data && accounts.data.length > 0) {
+        const acct = accounts.data[0];
+        smtpConfig = {
+          host: acct.smtp_host,
+          port: acct.smtp_port,
+          user: acct.smtp_user,
+          pass: acct.smtp_pass || '',
+          fromName: acct.display_name,
+          fromEmail: acct.email,
+        };
+      }
+    } catch {}
+
+    const res = await sendEmail({
+      to: toList,
+      subject,
+      body_text: body,
+      smtp_config: smtpConfig,
+    });
+
     setSending(false);
     if (res.success) {
       setSent(true);
       setTimeout(() => router.push('/messages'), 1500);
     } else {
-      setError(res.error || 'Error al enviar');
+      setError(res.error || 'Error al enviar. Verifica la configuración SMTP en Configuración > Correo.');
     }
   };
 
@@ -79,7 +104,12 @@ export default function ComposePage() {
           />
         </div>
 
-        {error && <p style={{ color: 'var(--color-error)', fontSize: '0.875rem' }}>{error}</p>}
+        {error && (
+          <p style={{ color: 'var(--color-error)', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>error</span>
+            {error}
+          </p>
+        )}
 
         <div className={styles.actions}>
           <Link href="/messages" className="btn btn--ghost">Cancelar</Link>

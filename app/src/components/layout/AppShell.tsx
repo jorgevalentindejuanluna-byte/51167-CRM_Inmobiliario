@@ -9,8 +9,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, loading } = useAuth();
 
-  // Si estamos en la página de login, no renderizar Sidebar ni TopBar
-  if (pathname === '/login') {
+  // En login o signature pública, no renderizar Sidebar ni TopBar
+  if (pathname === '/login' || pathname.startsWith('/signature')) {
     return <>{children}</>;
   }
 

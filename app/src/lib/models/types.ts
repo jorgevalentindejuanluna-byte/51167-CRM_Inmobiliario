@@ -547,6 +547,8 @@ export interface EmailAccount {
   smtp_host: string;
   smtp_port: number;
   smtp_encryption: EmailEncryption;
+  smtp_user: string;
+  smtp_pass?: string;
   username: string;
   provider: 'other' | 'gmail' | 'outlook' | 'yahoo';
   sync_enabled: boolean;

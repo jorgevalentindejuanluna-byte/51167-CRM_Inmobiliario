@@ -19,7 +19,16 @@ export const NAV_ITEMS = [
 
 export const NAV_BOTTOM_ITEMS = [
   { key: 'mobile', label: 'App Móvil', icon: 'smartphone', path: '/mobile' },
-  { key: 'settings', label: 'Configuración', icon: 'settings', path: '/settings' },
+  {
+    key: 'settings',
+    label: 'Configuración',
+    icon: 'settings',
+    path: '/settings',
+    children: [
+      { key: 'settings-messaging', label: 'Centro de Mensajería', icon: 'chat', path: '/settings/messaging' },
+      { key: 'settings-email', label: 'Correo SMTP', icon: 'mail', path: '/settings/email' },
+    ],
+  },
   { key: 'support', label: 'Soporte', icon: 'help', path: '/support' },
 ] as const;
 

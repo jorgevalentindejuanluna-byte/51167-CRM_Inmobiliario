@@ -114,6 +114,43 @@
   white-space: nowrap;
 }
 
+.chevron {
+  transition: transform var(--transition-fast);
+}
+
+/* ── Submenu ── */
+.submenu {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 2px 0 2px 28px;
+  padding-left: 8px;
+  border-left: 1px solid var(--color-outline-variant);
+}
+
+.subItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--color-on-surface-variant);
+  font-size: 13px;
+  font-weight: 400;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+
+.subItem:hover {
+  background: var(--color-surface);
+  color: var(--color-on-surface);
+}
+
+.subItemActive {
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
 /* ── Bottom nav ── */
 .navBottom {
   padding: 12px;

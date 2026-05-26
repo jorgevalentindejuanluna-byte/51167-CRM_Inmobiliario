@@ -1334,6 +1334,7 @@ export const MOCK_EMAIL_ACCOUNTS: EmailAccount[] = [
     email: 'info@real-top-state.com', display_name: 'Real Top State',
     imap_host: 'imap.real-top-state.com', imap_port: 993, imap_encryption: 'ssl',
     smtp_host: 'smtp.real-top-state.com', smtp_port: 587, smtp_encryption: 'starttls',
+    smtp_user: 'info@real-top-state.com', smtp_pass: '',
     username: 'info@real-top-state.com', provider: 'other',
     sync_enabled: true, last_sync_at: '2026-05-23T08:30:00Z',
     signature: '<p>Real Top State — Tu inmobiliaria de confianza</p>',

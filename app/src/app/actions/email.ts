@@ -13,14 +13,11 @@ function generateId(): string {
 
 export async function getEmailAccounts(token?: string): Promise<{ success: boolean; error?: string; data?: EmailAccount[] }> {
   try {
-    try {
-      const result = await supabaseSelect<EmailAccount>('email_accounts', { token });
-      if (result && result.length > 0) return { success: true, data: result };
-    } catch {
-    }
-    return { success: true, data: MOCK_EMAIL_ACCOUNTS };
+    const result = await supabaseSelect<EmailAccount>('email_accounts', { token });
+    if (result && result.length > 0) return { success: true, data: result };
+    return { success: true, data: [] };
   } catch (error: any) {
-    return { success: false, error: error.message };
+    return { success: true, data: [] };
   }
 }
 
@@ -29,7 +26,34 @@ export async function saveEmailAccount(
   token?: string
 ): Promise<{ success: boolean; error?: string; data?: EmailAccount }> {
   try {
-    const result = await supabaseInsert<EmailAccount>('email_accounts', data as any, token);
+    const existing = await supabaseSelect<EmailAccount>('email_accounts', {
+      token,
+      eq: ['email', data.email],
+    });
+    if (existing && existing.length > 0) {
+      const acct = existing[0];
+      const result = await supabaseUpdate<EmailAccount>('email_accounts', acct.id, {
+        display_name: data.display_name,
+        smtp_host: data.smtp_host,
+        smtp_port: data.smtp_port,
+        smtp_encryption: data.smtp_encryption || 'starttls',
+        smtp_user: data.smtp_user,
+        smtp_pass: data.smtp_pass,
+        provider: data.provider || 'other',
+        sync_enabled: true,
+      } as any, token);
+      return { success: true, data: result || existing[0] };
+    }
+    const result = await supabaseInsert<EmailAccount>('email_accounts', {
+      ...data,
+      agency_id: 'ag-001',
+      username: data.smtp_user || data.email,
+      imap_host: '',
+      imap_port: 993,
+      imap_encryption: 'ssl',
+      smtp_encryption: data.smtp_encryption || 'starttls',
+      sync_enabled: true,
+    } as any, token);
     return { success: true, data: result[0] };
   } catch (error: any) {
     return { success: false, error: error.message };

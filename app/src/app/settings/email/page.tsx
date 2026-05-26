@@ -34,8 +34,17 @@ export default function EmailSettingsPage() {
   const [accounts, setAccounts] = useState<any[]>([]);
 
   useEffect(() => {
+    const saved = localStorage.getItem('smtp_config');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setForm(prev => ({ ...prev, ...parsed }));
+      } catch {}
+    }
+
     getEmailAccounts().then(res => {
       if (res.success && res.data && res.data.length > 0) {
+        setAccounts(res.data);
         const acct = res.data[0];
         setForm({
           host: acct.smtp_host || '',
@@ -46,15 +55,6 @@ export default function EmailSettingsPage() {
           fromEmail: acct.email || '',
           encryption: (acct.smtp_encryption as any) || 'starttls',
         });
-        setAccounts(res.data);
-      } else {
-        const saved = localStorage.getItem('smtp_config');
-        if (saved) {
-          try {
-            const parsed = JSON.parse(saved);
-            setForm(prev => ({ ...prev, ...parsed }));
-          } catch {}
-        }
       }
     });
   }, []);

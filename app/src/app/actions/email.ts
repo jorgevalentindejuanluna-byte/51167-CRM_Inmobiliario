@@ -32,27 +32,7 @@ export async function saveEmailAccount(
   token?: string
 ): Promise<{ success: boolean; error?: string; data?: EmailAccount }> {
   try {
-    const existing = await supabaseSelect<EmailAccount>('email_accounts', {
-      token,
-      eq: ['email', data.email],
-    });
-
-    if (existing && existing.length > 0) {
-      const acct = existing[existing.length - 1];
-      const result = await supabaseUpdate<EmailAccount>('email_accounts', acct.id, {
-        display_name: data.display_name,
-        smtp_host: data.smtp_host,
-        smtp_port: data.smtp_port,
-        smtp_encryption: data.smtp_encryption || 'starttls',
-        smtp_user: data.smtp_user,
-        smtp_pass: data.smtp_pass,
-        provider: data.provider || 'other',
-        sync_enabled: true,
-      } as any, token);
-      return { success: true, data: result || existing[0] };
-    }
-
-    const result = await supabaseInsert<EmailAccount>('email_accounts', {
+    const payload = {
       agency_id: 'ag-001',
       email: data.email,
       display_name: data.display_name,
@@ -63,9 +43,31 @@ export async function saveEmailAccount(
       smtp_encryption: data.smtp_encryption || 'starttls',
       provider: data.provider || 'other',
       sync_enabled: true,
-    } as any, token);
+    };
+
+    const result = await supabaseInsert<EmailAccount>('email_accounts', payload as any, token);
     return { success: true, data: result[0] };
   } catch (error: any) {
+    // Si es duplicate key (23505), hacemos UPDATE
+    if (error.message?.includes('23505')) {
+      try {
+        const all = await supabaseSelect<EmailAccount>('email_accounts', { token });
+        const match = all?.find(a => a.email === data.email);
+        if (match) {
+          const updated = await supabaseUpdate<EmailAccount>('email_accounts', match.id, {
+            display_name: data.display_name,
+            smtp_host: data.smtp_host,
+            smtp_port: data.smtp_port,
+            smtp_user: data.smtp_user,
+            smtp_pass: data.smtp_pass,
+            smtp_encryption: data.smtp_encryption || 'starttls',
+            provider: data.provider || 'other',
+            sync_enabled: true,
+          } as any, token);
+          return { success: true, data: updated || match };
+        }
+      } catch {}
+    }
     return { success: false, error: error.message };
   }
 }

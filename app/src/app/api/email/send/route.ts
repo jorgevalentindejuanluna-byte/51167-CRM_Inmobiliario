@@ -19,7 +19,11 @@ export async function POST(request: NextRequest) {
     let config = smtp_config;
     if (!config) {
       const dbConfig = await getAgencySmtpConfig('ag-001');
-      if (dbConfig) config = dbConfig;
+      if (dbConfig) {
+        config = dbConfig;
+      } else {
+        console.warn('[Email API] No SMTP config found in DB for agency ag-001');
+      }
     }
 
     const result = await sendEmailViaSmtp(

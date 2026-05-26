@@ -112,23 +112,34 @@ export async function getAgencySmtpConfig(agencyId: string): Promise<SmtpConfig 
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
+    const mapRow = (row: any) => row ? {
+      host: row.smtp_host,
+      port: row.smtp_port,
+      user: row.smtp_user,
+      pass: row.smtp_pass,
+      fromName: row.display_name,
+      fromEmail: row.email,
+    } : null;
+
     const { data, error } = await supabase
       .from('email_accounts')
       .select('smtp_host, smtp_port, smtp_user, smtp_pass, display_name, email')
       .eq('agency_id', agencyId)
       .eq('sync_enabled', true)
-      .single();
+      .order('created_at', { ascending: false })
+      .maybeSingle();
 
-    if (error || !data) return null;
+    if (data) return mapRow(data);
 
-    return {
-      host: data.smtp_host,
-      port: data.smtp_port,
-      user: data.smtp_user,
-      pass: data.smtp_pass,
-      fromName: data.display_name,
-      fromEmail: data.email,
-    };
+    // Fallback: buscar cualquier cuenta aunque no tenga sync_enabled
+    const { data: fallback } = await supabase
+      .from('email_accounts')
+      .select('smtp_host, smtp_port, smtp_user, smtp_pass, display_name, email')
+      .eq('agency_id', agencyId)
+      .order('created_at', { ascending: false })
+      .maybeSingle();
+
+    return mapRow(fallback);
   } catch {
     return null;
   }

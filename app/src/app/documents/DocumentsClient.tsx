@@ -250,7 +250,7 @@ export function DocumentsClient() {
         formData.append('path', path);
         const res = await uploadFile(formData);
         if (!res.success) throw new Error(res.error);
-        finalUrl = res.path || '';
+        finalUrl = res.path ?? path;
       } catch (storageErr) {
         console.warn('[Storage] Fallback a subida local/mock en entorno sandbox.');
         finalUrl = URL.createObjectURL(file);

@@ -20,7 +20,7 @@ function getSupabase() {
 }
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
@@ -34,7 +34,7 @@ export async function GET(
 
     const { data, error } = await (supabase
       .from('signatures') as any)
-      .select('id, title, type, status, signer_name, signer_id, signer_email, document_id, operation_id, created_at, expires_at')
+      .select('id, title, type, status, signer_name, signer_id, signer_email, document_id, operation_id, token, created_at, expires_at')
       .eq('id', id)
       .single();
 
@@ -43,6 +43,15 @@ export async function GET(
     }
 
     const sig = data as any;
+
+    // Si la firma tiene token, validarlo contra el query param
+    if (sig.token) {
+      const { searchParams } = new URL(request.url);
+      const providedToken = searchParams.get('token');
+      if (!providedToken || providedToken !== sig.token) {
+        return NextResponse.json({ error: 'Invalid or missing token' }, { status: 403 });
+      }
+    }
 
     if (sig.status !== 'borrador' && sig.status !== 'enviado') {
       return NextResponse.json({ error: 'Signature already completed or expired' }, { status: 410 });

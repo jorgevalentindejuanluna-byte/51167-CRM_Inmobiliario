@@ -429,6 +429,104 @@ export function DocumentsClient() {
     }
   };
 
+  // Estado para el modal de firma biométrica
+  const [showSignatureModal, setShowSignatureModal] = useState(false);
+  const [signatureDoc, setSignatureDoc] = useState<CRMDocument | null>(null);
+  const [signerName, setSignerName] = useState('');
+  const [signerEmail, setSignerEmail] = useState('');
+  const [sendingSignature, setSendingSignature] = useState(false);
+
+  const handleOpenBiometricSignature = (doc: CRMDocument) => {
+    setSignatureDoc(doc);
+    setSignerName(doc.metadata?.fields?.['Nombre completo'] || '');
+    setSignerEmail('');
+    setShowSignatureModal(true);
+  };
+
+  const handleSendBiometricSignature = async () => {
+    if (!signatureDoc || !signerName.trim() || !signerEmail.trim()) return;
+    setSendingSignature(true);
+
+    try {
+      // 1. Crear solicitud de firma en Supabase
+      const res = await fetch('/api/signatures', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          document_id: signatureDoc.id,
+          document_name: signatureDoc.name,
+          signer_name: signerName.trim(),
+          signer_email: signerEmail.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Error al crear solicitud de firma');
+
+      // 2. Enviar email al firmante
+      const emailRes = await fetch('/api/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: [{ name: signerName.trim(), email: signerEmail.trim() }],
+          subject: `Firma biométrica requerida: ${signatureDoc.name}`,
+          body_text: `Hola ${signerName.trim()},\n\nHas recibido una solicitud de firma biométrica para el documento: "${signatureDoc.name}".\n\nPara firmarlo, accede al siguiente enlace seguro:\n${data.signature_url}\n\nEste enlace es personal e intransferible. No lo compartas con terceros.\n\nSi tienes alguna duda, contacta con tu asesor inmobiliario.\n\nReal Top State CRM`,
+          body_html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background: #fafafa; border-radius: 12px;">
+              <div style="text-align: center; margin-bottom: 24px;">
+                <div style="font-size: 28px; margin-bottom: 4px;">🏢</div>
+                <h1 style="font-size: 20px; color: #222; margin: 0;">Real Top State CRM</h1>
+                <p style="color: #888; font-size: 14px; margin: 4px 0 0;">Firma Biométrica</p>
+              </div>
+              <div style="background: white; padding: 24px; border-radius: 8px; border: 1px solid #e0e0e0;">
+                <p style="font-size: 16px; color: #333;">Hola <strong>${signerName.trim()}</strong>,</p>
+                <p style="font-size: 14px; color: #555; line-height: 1.6;">
+                  Has recibido una solicitud de <strong>firma biométrica</strong> para el documento:
+                </p>
+                <div style="background: #f5f0eb; padding: 12px 16px; border-radius: 6px; margin: 16px 0; border-left: 3px solid #f2be8c;">
+                  <p style="margin: 0; font-weight: 600; color: #333;">${signatureDoc.name}</p>
+                </div>
+                <p style="font-size: 14px; color: #555; line-height: 1.6;">
+                  Para firmarlo, accede al siguiente enlace seguro:
+                </p>
+                <div style="text-align: center; margin: 24px 0;">
+                  <a href="${data.signature_url}" style="display: inline-block; background: #f2be8c; color: #1c1c1c; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
+                    Firmar Documento
+                  </a>
+                </div>
+                <p style="font-size: 12px; color: #999; line-height: 1.5; text-align: center;">
+                  Este enlace es personal e intransferible. No lo compartas con terceros.<br>
+                  Si no has solicitado esta firma, ignora este mensaje.
+                </p>
+              </div>
+              <div style="text-align: center; margin-top: 16px;">
+                <p style="font-size: 11px; color: #bbb;">Real Top State CRM — Tu inmobiliaria de confianza</p>
+              </div>
+            </div>
+          `.replace(/\n\s+/g, ''),
+        }),
+      });
+
+      const emailData = await emailRes.json();
+      if (!emailData.success) throw new Error(emailData.error || 'Error al enviar el email');
+
+      // 3. Marcar documento como pendiente de firma
+      setLocalDocs(prev => prev.map(d => {
+        if (d.id === signatureDoc.id) {
+          return { ...d, metadata: { ...d.metadata, signatures: { status: 'pendiente_firma', firmante: signerName.trim(), signed_at: null } } };
+        }
+        return d;
+      }));
+
+      setShowSignatureModal(false);
+      showToast(`Solicitud de firma enviada a ${signerEmail.trim()}. El firmante recibirá un enlace seguro.`, 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Error al enviar la solicitud de firma', 'error');
+    } finally {
+      setSendingSignature(false);
+    }
+  };
+
   // Simulación de AutoFirma / Firma Digital
   const handleRequestSignature = (doc: CRMDocument) => {
     showToast(`Invocando AutoFirma para el archivo ${doc.name}...`, 'info');
@@ -796,13 +894,22 @@ export function DocumentsClient() {
                             )}
 
                             {doc.status === 'aprobado' && !doc.metadata?.signatures && (
-                              <button 
-                                className={`${styles.actionBtn} ${styles.signatureBtn}`}
-                                onClick={() => handleRequestSignature(doc)}
-                                title="Firmar con AutoFirma"
-                              >
-                                <span className="material-symbols-outlined">draw</span>
-                              </button>
+                              <>
+                                <button 
+                                  className={`${styles.actionBtn} ${styles.signatureBtn}`}
+                                  onClick={() => handleRequestSignature(doc)}
+                                  title="Firmar con AutoFirma"
+                                >
+                                  <span className="material-symbols-outlined">draw</span>
+                                </button>
+                                <button 
+                                  className={`${styles.actionBtn} ${styles.biometricBtn}`}
+                                  onClick={() => handleOpenBiometricSignature(doc)}
+                                  title="Solicitar Firma Biométrica"
+                                >
+                                  <span className="material-symbols-outlined">edit_square</span>
+                                </button>
+                              </>
                             )}
 
                             <button 
@@ -1242,6 +1349,67 @@ export function DocumentsClient() {
                 style={{ backgroundColor: 'var(--color-error)', color: 'white' }}
               >
                 Confirmar Rechazo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 5: SOLICITAR FIRMA BIOMÉTRICA */}
+      {showSignatureModal && signatureDoc && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="material-symbols-outlined" style={{ color: 'var(--color-primary)' }}>edit_square</span>
+                <h3>Solicitar Firma Biométrica</h3>
+              </div>
+              <button className={styles.closeBtn} onClick={() => setShowSignatureModal(false)}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className={styles.modalBody}>
+              <p className={styles.modalExplanation}>
+                El documento <strong>{signatureDoc.name}</strong> se enviará para firma biométrica. 
+                El destinatario recibirá un enlace único y seguro para firmar desde cualquier dispositivo.
+              </p>
+
+              <div className={styles.formGrid}>
+                <div className="form-group">
+                  <label>Nombre del firmante</label>
+                  <input
+                    type="text"
+                    className={styles.inputField}
+                    placeholder="Nombre completo"
+                    value={signerName}
+                    onChange={(e) => setSignerName(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginTop: '1rem' }}>
+                  <label>Correo electrónico del firmante</label>
+                  <input
+                    type="email"
+                    className={styles.inputField}
+                    placeholder="correo@ejemplo.com"
+                    value={signerEmail}
+                    onChange={(e) => setSignerEmail(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.modalFooter}>
+              <button className="btn btn--secondary" onClick={() => setShowSignatureModal(false)}>
+                Cancelar
+              </button>
+              <button
+                className="btn btn--primary"
+                onClick={handleSendBiometricSignature}
+                disabled={sendingSignature || !signerName.trim() || !signerEmail.trim()}
+              >
+                {sendingSignature ? 'Enviando...' : 'Enviar Solicitud de Firma'}
               </button>
             </div>
           </div>

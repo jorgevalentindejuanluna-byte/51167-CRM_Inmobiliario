@@ -649,6 +649,26 @@
 .signatureBtn .material-symbols-outlined { color: #7c3aed; }
 .signatureBtn:hover { border-color: #7c3aed !important; background: rgba(124, 58, 237, 0.08) !important; }
 
+.biometricBtn .material-symbols-outlined { color: var(--color-primary); }
+.biometricBtn:hover { border-color: var(--color-primary) !important; background: rgba(242, 190, 140, 0.08) !important; }
+
+.inputField {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-outline-variant);
+  background: var(--color-surface-lowest);
+  color: var(--color-on-surface);
+  font-size: 0.9rem;
+  transition: border-color var(--transition-fast);
+}
+
+.inputField:focus {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(242, 190, 140, 0.15);
+}
+
 /* Código hash */
 .hashCode {
   font-family: 'Courier New', monospace;

@@ -67,11 +67,16 @@ export default function BiometricSignaturePage({
   useEffect(() => {
     if (!signatureId) return;
 
-    fetch(`/api/signatures/${signatureId}`)
+    const searchParams = new URLSearchParams(window.location.search);
+    const token = searchParams.get('token');
+    const url = token ? `/api/signatures/${signatureId}?token=${token}` : `/api/signatures/${signatureId}`;
+
+    fetch(url)
       .then((res) => {
         if (!res.ok) {
           if (res.status === 404) throw new Error('Solicitud de firma no encontrada');
           if (res.status === 410) throw new Error('Esta solicitud de firma ya fue completada o ha expirado');
+          if (res.status === 403) throw new Error('Enlace de firma inválido o caducado');
           throw new Error('Error al cargar la solicitud de firma');
         }
         return res.json();

@@ -31,12 +31,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   const refreshUser = useCallback(async () => {
+    // Rutas públicas que no requieren autenticación
+    const isPublicRoute = pathname === '/login' || pathname.startsWith('/signature');
     const accessToken = localStorage.getItem('rts_access_token');
     if (!accessToken) {
       setUser(null);
       setToken(null);
       setLoading(false);
-      if (pathname !== '/login') router.push('/login');
+      if (!isPublicRoute) router.push('/login');
       return;
     }
 
@@ -48,7 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem('rts_access_token');
         setUser(null);
         setToken(null);
-        if (pathname !== '/login') router.push('/login');
+        if (!isPublicRoute) router.push('/login');
         return;
       }
 
@@ -70,7 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem('rts_access_token');
         setUser(null);
         setToken(null);
-        if (pathname !== '/login') {
+        if (!isPublicRoute) {
           router.push('/login');
         }
       }
@@ -79,7 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem('rts_access_token');
       setUser(null);
       setToken(null);
-      if (pathname !== '/login') router.push('/login');
+      if (!isPublicRoute) router.push('/login');
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useDocuments, useLeads, useOperations, useProperties } from '@/lib/use-data';
 import { supabaseUploadFile, supabaseInsert, supabaseUpdate, supabaseGetPublicUrl } from '@/lib/supabase';
@@ -32,10 +32,22 @@ export function DocumentsClient() {
   // Estado local para documentos cargados y modificados dinámicamente
   const [localDocs, setLocalDocs] = useState<CRMDocument[]>([]);
 
-  // Sincronizar el estado local con los datos cargados
+  // Cargar documentos guardados localmente al montar
+  useEffect(() => {
+    const stored = localStorage.getItem('local_documents');
+    if (stored) {
+      try { setLocalDocs(JSON.parse(stored)); } catch {}
+    }
+  }, []);
+
+  // Sincronizar el estado local con los datos cargados (sin perder docs locales)
   useEffect(() => {
     if (documents && documents.length > 0) {
-      setLocalDocs(documents);
+      setLocalDocs(prev => {
+        const existingIds = new Set(prev.map((d: { id: string }) => d.id));
+        const newDocs = documents.filter((d: { id: string }) => !existingIds.has(d.id));
+        return newDocs.length > 0 ? [...prev, ...newDocs] : prev;
+      });
     }
   }, [documents]);
 
@@ -84,6 +96,15 @@ export function DocumentsClient() {
   const zoomIn = () => setZoomLevel(prev => Math.min(prev + 0.25, 3));
   const zoomOut = () => setZoomLevel(prev => Math.max(prev - 0.25, 0.5));
   const zoomReset = () => setZoomLevel(1);
+
+  // Persistir localDocs en localStorage cada vez que cambie
+  const prevDocsRef = useRef<CRMDocument[]>([]);
+  useEffect(() => {
+    if (localDocs.length > 0 && localDocs !== prevDocsRef.current) {
+      localStorage.setItem('local_documents', JSON.stringify(localDocs));
+      prevDocsRef.current = localDocs;
+    }
+  }, [localDocs]);
 
   const handleDeleteDocument = async (docId: string) => {
     const doc = localDocs.find(d => d.id === docId);

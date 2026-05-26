@@ -10,6 +10,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No se ha enviado ningún archivo' }, { status: 400 });
     }
 
+    const supportedMimes = ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'];
+    if (!supportedMimes.includes(file.type)) {
+      return NextResponse.json({
+        error: `Formato "${file.type || 'desconocido'}" no soportado. Gemini solo acepta: PDF, PNG, JPG, WEBP. Convierte el archivo a PDF antes de subirlo.`
+      }, { status: 400 });
+    }
+
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return NextResponse.json({ 

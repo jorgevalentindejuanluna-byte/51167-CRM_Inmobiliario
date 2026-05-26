@@ -223,7 +223,7 @@ export function DocumentsClient() {
       return;
     }
 
-    const allowedExtensions = ['pdf', 'png', 'jpg', 'jpeg', 'docx'];
+    const allowedExtensions = ['pdf', 'png', 'jpg', 'jpeg'];
     const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
     if (!allowedExtensions.includes(fileExtension)) {
       setError('Formato no permitido. Solo se aceptan archivos PDF, PNG, JPG, JPEG o DOCX.');
@@ -641,7 +641,7 @@ export function DocumentsClient() {
               className={styles.hiddenInput} 
               onChange={handleFileUpload}
               disabled={uploading}
-              accept=".pdf,.png,.jpg,.jpeg,.docx"
+              accept=".pdf,.png,.jpg,.jpeg"
             />
           </label>
         </div>

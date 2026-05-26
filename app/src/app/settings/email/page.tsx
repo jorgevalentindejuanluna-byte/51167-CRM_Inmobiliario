@@ -47,6 +47,14 @@ export default function EmailSettingsPage() {
           encryption: (acct.smtp_encryption as any) || 'starttls',
         });
         setAccounts(res.data);
+      } else {
+        const saved = localStorage.getItem('smtp_config');
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            setForm(prev => ({ ...prev, ...parsed }));
+          } catch {}
+        }
       }
     });
   }, []);
@@ -93,8 +101,9 @@ export default function EmailSettingsPage() {
 
   const handleSave = async () => {
     setSaving(true);
+    setTestResult(null);
     try {
-      await saveEmailAccount({
+      const res = await saveEmailAccount({
         email: form.fromEmail,
         display_name: form.fromName,
         smtp_host: form.host,
@@ -104,8 +113,16 @@ export default function EmailSettingsPage() {
         provider: 'other',
         sync_enabled: true,
       } as any);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+
+      // Persistir en localStorage como respaldo
+      localStorage.setItem('smtp_config', JSON.stringify(form));
+
+      if (res.success) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      } else {
+        setTestResult({ success: false, message: res.error || 'Error al guardar en el servidor' });
+      }
     } catch (err: any) {
       setTestResult({ success: false, message: err.message || 'Error al guardar' });
     } finally {

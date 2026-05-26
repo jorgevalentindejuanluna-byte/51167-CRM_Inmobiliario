@@ -193,11 +193,6 @@ export default function LoginClient() {
                 'Acceder al CRM'
               )}
             </button>
-
-            <p className={styles.demoHint}>
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>info</span>
-              Demo: usa <code>carlos@realtopstate.es</code> con cualquier contraseña
-            </p>
           </form>
         </div>
       </div>

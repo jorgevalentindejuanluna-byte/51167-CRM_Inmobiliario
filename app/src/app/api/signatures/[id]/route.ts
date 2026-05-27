@@ -83,3 +83,44 @@ export async function GET(
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  if (!id) {
+    return NextResponse.json({ error: 'Signature ID is required' }, { status: 400 });
+  }
+
+  try {
+    const body = await request.json();
+    const { status } = body;
+
+    if (!status) {
+      return NextResponse.json({ error: 'Status is required' }, { status: 400 });
+    }
+
+    const validStatuses = ['cancelado', 'enviado', 'borrador'];
+    if (!validStatuses.includes(status)) {
+      return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+    }
+
+    const supabase = getSupabase();
+
+    const { error } = await (supabase
+      .from('signatures') as any)
+      .update({ status })
+      .eq('id', id);
+
+    if (error) {
+      console.error('[Signature API] Error updating signature status:', error);
+      return NextResponse.json({ error: error.message || 'Failed to update signature' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    console.error('[Signature API] Error in PATCH:', err);
+    return NextResponse.json({ error: err?.message || 'Internal server error' }, { status: 500 });
+  }
+}

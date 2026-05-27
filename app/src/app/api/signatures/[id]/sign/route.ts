@@ -94,114 +94,83 @@ export async function POST(
 
     // Generate signed document PDF
     let signedDocUrl = '';
-    if (docRecord?.url && docRecord.url.startsWith('http')) {
-      try {
+
+    async function addSecurityPage(pdfDoc: PDFDocument, font: any, fontBold: any) {
+      let sigImage: any = null;
+      if (signatureImageUrl) {
+        const sigImageBytes = await fetch(signatureImageUrl).then(r => r.arrayBuffer());
+        try { sigImage = await pdfDoc.embedPng(sigImageBytes); } catch { sigImage = await pdfDoc.embedJpg(sigImageBytes); }
+      }
+
+      const page = pdfDoc.addPage([595, 842]);
+      let y = 810;
+
+      page.drawText('DOCUMENTO FIRMADO ELECTRÓNICAMENTE', { x: 50, y, size: 16, font: fontBold, color: rgb(0.13, 0.13, 0.13) });
+      y -= 30;
+      page.drawLine({ start: { x: 50, y }, end: { x: 545, y }, thickness: 1, color: rgb(0.8, 0.8, 0.8) });
+      y -= 25;
+
+      if (sigImage) {
+        const dims = sigImage.scale(0.6);
+        page.drawImage(sigImage, { x: 50, y: y - dims.height, width: dims.width, height: dims.height });
+        y -= dims.height + 20;
+      }
+
+      const lines: [string, string][] = [
+        ['Firmante:', sig.signer_name || 'N/A'],
+        ['Fecha:', new Date(signedAt).toLocaleString('es-ES')],
+        ['IP:', ipAddress],
+        ['Dispositivo:', browserInfo.slice(0, 80)],
+        ['', ''],
+        ['Hash Original:', sig.hash_documento || 'N/A'],
+        ['Hash Firma:', `sha256:${hashFirmado}`],
+        ['', ''],
+        ['Trazo (pts):', `${biometricAnalysis.strokesCount}`],
+        ['Velocidad:', `${biometricAnalysis.averageSpeed} px/s`],
+        ['Presión media:', `${(biometricAnalysis.averagePressure * 100).toFixed(0)}%`],
+        ['Presión máx:', `${(biometricAnalysis.maxPressure * 100).toFixed(0)}%`],
+        ['Duración:', `${biometricAnalysis.durationMs} ms`],
+        ['', ''],
+        ['Estándar:', 'eIDAS (UE) 910/2014'],
+      ];
+
+      for (const [l, v] of lines) {
+        if (!l && !v) { y -= 10; continue; }
+        if (l) {
+          page.drawText(l, { x: 70, y, size: l.includes('Hash') ? 9 : 10, font: l.includes('Hash') || l.includes('Estándar') ? fontBold : font, color: rgb(0.13, 0.13, 0.13) });
+        }
+        if (v) {
+          const vx = l.includes('Hash') || l.includes('Estándar') ? 70 : 180;
+          page.drawText(v, { x: vx, y, size: l.includes('Hash') ? 9 : 10, font, color: l.includes('Hash') ? rgb(0.3, 0.3, 0.3) : rgb(0.13, 0.13, 0.13) });
+        }
+        y -= l.includes('Hash') ? 22 : 18;
+      }
+    }
+
+    try {
+      let pdfDoc: PDFDocument;
+      if (docRecord?.url && docRecord.url.startsWith('http')) {
         const originalPdfBytes = await fetch(docRecord.url).then(r => r.arrayBuffer());
-        const pdfDoc = await PDFDocument.load(originalPdfBytes);
-        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-        const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-        // Signature image page
-        if (signatureImageUrl) {
-          const sigImageBytes = await fetch(signatureImageUrl).then(r => r.arrayBuffer());
-          let sigImage;
-          try {
-            sigImage = await pdfDoc.embedPng(sigImageBytes);
-          } catch {
-            sigImage = await pdfDoc.embedJpg(sigImageBytes);
-          }
-          const sigPage = pdfDoc.addPage([595, 420]);
-          const sigDims = sigImage.scale(0.8);
-          sigPage.drawText('FIRMA BIOMÉTRICA', { x: 50, y: 370, size: 18, font: fontBold, color: rgb(0.13, 0.13, 0.13) });
-          sigPage.drawLine({ start: { x: 50, y: 360 }, end: { x: 545, y: 360 }, thickness: 1, color: rgb(0.8, 0.8, 0.8) });
-          sigPage.drawImage(sigImage, { x: 50, y: 150, width: sigDims.width, height: sigDims.height });
-          sigPage.drawText(`Firmante: ${sig.signer_name || 'N/A'}`, { x: 50, y: 100, size: 10, font });
-          sigPage.drawText(`Fecha: ${new Date(signedAt).toLocaleString('es-ES')}`, { x: 50, y: 85, size: 10, font });
-          sigPage.drawText(`IP: ${ipAddress}`, { x: 50, y: 70, size: 10, font });
-        }
-
-        // Certificate page
-        const certPage = pdfDoc.addPage([595, 842]);
-        let y = 800;
-        certPage.drawText('CERTIFICADO DE AUTENTICIDAD', { x: 50, y, size: 20, font: fontBold, color: rgb(0.13, 0.13, 0.13) });
-        y -= 35;
-        certPage.drawLine({ start: { x: 50, y }, end: { x: 545, y }, thickness: 1, color: rgb(0.8, 0.8, 0.8) });
-        y -= 30;
-
-        const certLines = [
-          ['Documento ID:', docRecord?.id || 'N/A'],
-          ['Tipo:', 'Firma Biométrica Avanzada'],
-          ['Firmante:', sig.signer_name || 'N/A'],
-          ['Fecha de Firma:', new Date(signedAt).toLocaleString('es-ES')],
-          ['IP del Firmante:', ipAddress],
-          ['Dispositivo / Navegador:', browserInfo.slice(0, 80)],
-          ['', ''],
-          ['HASH DEL DOCUMENTO ORIGINAL:', sig.hash_documento || 'N/A'],
-          ['HASH DE LA FIRMA:', `sha256:${hashFirmado}`],
-          ['', ''],
-          ['DATOS BIOMÉTRICOS:', ''],
-          [`  · Trazos capturados:`, `${biometricAnalysis.strokesCount}`],
-          [`  · Velocidad media:`, `${biometricAnalysis.averageSpeed} px/s`],
-          [`  · Presión media:`, `${(biometricAnalysis.averagePressure * 100).toFixed(0)}%`],
-          [`  · Presión máxima:`, `${(biometricAnalysis.maxPressure * 100).toFixed(0)}%`],
-          [`  · Duración:`, `${biometricAnalysis.durationMs} ms`],
-          ['', ''],
-          ['ESTÁNDARES:', 'eIDAS / REGLAMENTO (UE) Nº 910/2014'],
-          ['VALIDEZ:', 'Plena validez jurídica como firma electrónica'],
-        ];
-
-        for (const [label, value] of certLines) {
-          if (label) {
-            certPage.drawText(label, { x: 70, y, size: label.startsWith('  ·') ? 9 : 10, font: label.includes('BIOMÉ') || label.includes('HASH') || label.includes('CERTIF') || label.includes('ESTÁN') || label.includes('VALIDEZ') ? fontBold : font, color: label.startsWith('  ·') ? rgb(0.3, 0.3, 0.3) : rgb(0.13, 0.13, 0.13) });
-          }
-          if (value) {
-            certPage.drawText(value, { x: label ? 310 : 70, y, size: 10, font, color: label.startsWith('  ·') ? rgb(0.3, 0.3, 0.3) : rgb(0.13, 0.13, 0.13) });
-          }
-          y -= 18;
-        }
-
-        const signedPdfBytes = await pdfDoc.save();
-        const signedPath = `signed/${docRecord?.id || id}_signed_${Date.now()}.pdf`;
-        const { error: signedUploadError } = await supabase.storage
-          .from('documents')
-          .upload(signedPath, Buffer.from(signedPdfBytes), { contentType: 'application/pdf', upsert: true });
-        if (!signedUploadError) {
-          const { data: signed } = await supabase.storage.from('documents').createSignedUrl(signedPath, urlExpirySeconds);
-          if (signed) signedDocUrl = signed.signedUrl;
-        }
-      } catch (pdfErr) {
-        console.warn('[Signature] PDF merge failed, saving signature-only:', pdfErr);
+        pdfDoc = await PDFDocument.load(originalPdfBytes);
+      } else {
+        pdfDoc = await PDFDocument.create();
       }
-    } else {
-      // Create a standalone certificate PDF
-      try {
-        const pdfDoc = await PDFDocument.create();
-        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-        const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-        if (signatureImageUrl) {
-          const sigImageBytes = await fetch(signatureImageUrl).then(r => r.arrayBuffer());
-          let sigImage;
-          try { sigImage = await pdfDoc.embedPng(sigImageBytes); } catch { sigImage = await pdfDoc.embedJpg(sigImageBytes); }
-          const sigPage = pdfDoc.addPage([595, 420]);
-          const sigDims = sigImage.scale(0.8);
-          sigPage.drawText('FIRMA BIOMÉTRICA', { x: 50, y: 370, size: 18, font: fontBold });
-          sigPage.drawLine({ start: { x: 50, y: 360 }, end: { x: 545, y: 360 }, thickness: 1, color: rgb(0.8, 0.8, 0.8) });
-          sigPage.drawImage(sigImage, { x: 50, y: 150, width: sigDims.width, height: sigDims.height });
-          sigPage.drawText(`Firmante: ${sig.signer_name || 'N/A'}`, { x: 50, y: 100, size: 10, font });
-          sigPage.drawText(`Fecha: ${new Date(signedAt).toLocaleString('es-ES')}`, { x: 50, y: 85, size: 10, font });
-        }
+      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+      const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+      await addSecurityPage(pdfDoc, font, fontBold);
 
-        const standalonePdfBytes = await pdfDoc.save();
-        const standalonePath = `signed/standalone_${id}_${Date.now()}.pdf`;
-        const { error: upErr } = await supabase.storage.from('documents').upload(standalonePath, Buffer.from(standalonePdfBytes), { contentType: 'application/pdf', upsert: true });
-        if (!upErr) {
-          const { data: signed } = await supabase.storage.from('documents').createSignedUrl(standalonePath, urlExpirySeconds);
-          if (signed) signedDocUrl = signed.signedUrl;
-        }
-      } catch (certErr) {
-        console.warn('[Signature] Certificate PDF creation failed:', certErr);
+      const signedPdfBytes = await pdfDoc.save();
+      const signedPath = `signed/${docRecord?.id || id}_signed_${Date.now()}.pdf`;
+      const { error: upErr } = await supabase.storage
+        .from('documents')
+        .upload(signedPath, Buffer.from(signedPdfBytes), { contentType: 'application/pdf', upsert: true });
+      if (!upErr) {
+        const { data: signed } = await supabase.storage.from('documents').createSignedUrl(signedPath, urlExpirySeconds);
+        if (signed) signedDocUrl = signed.signedUrl;
       }
+    } catch (pdfErr) {
+      console.warn('[Signature] PDF generation failed:', pdfErr);
     }
 
     // Update signature record

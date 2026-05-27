@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useDocuments, useLeads, useOperations, useProperties } from '@/lib/use-data';
 import { supabaseUploadFile, supabaseInsert, supabaseUpdate, supabaseGetPublicUrl } from '@/lib/supabase';
 import { uploadFile, saveDocument, updateDocument, deleteDocument } from '@/app/actions/documents';
+import DocumentViewer from '@/components/documents/DocumentViewer';
 import { toUUID } from '@/lib/mock-data';
 import type { CRMDocument } from '@/lib/models/types';
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/constants';
@@ -331,7 +332,11 @@ export function DocumentsClient() {
         console.warn('[DB] Fallback local para guardar el documento.');
       }
 
-      setLocalDocs(prev => [newDoc, ...prev]);
+      setLocalDocs(prev => {
+        const updated = [newDoc, ...prev];
+        localStorage.setItem('local_documents', JSON.stringify(updated));
+        return updated;
+      });
       setShowOcrModal(false);
       setPendingDoc(null);
       setUploading(false);
@@ -533,12 +538,16 @@ export function DocumentsClient() {
       if (!emailData.success) throw new Error(emailData.error || 'Error al enviar el email');
 
       // 3. Marcar documento como pendiente de firma
-      setLocalDocs(prev => prev.map(d => {
-        if (d.id === signatureDoc.id) {
-          return { ...d, metadata: { ...d.metadata, signatures: { status: 'pendiente_firma', firmante: signerName.trim(), signed_at: null } } };
-        }
-        return d;
-      }));
+      setLocalDocs(prev => {
+        const updated = prev.map(d => {
+          if (d.id === signatureDoc.id) {
+            return { ...d, metadata: { ...d.metadata, signatures: { status: 'pendiente_firma', signature_id: data.id, firmante: signerName.trim(), signer_email: signerEmail.trim(), signed_at: null } } };
+          }
+          return d;
+        });
+        localStorage.setItem('local_documents', JSON.stringify(updated));
+        return updated;
+      });
 
       setShowSignatureModal(false);
       showToast(`Solicitud de firma enviada a ${signerEmail.trim()}. El firmante recibirá un enlace seguro.`, 'success');
@@ -546,6 +555,40 @@ export function DocumentsClient() {
       showToast(err.message || 'Error al enviar la solicitud de firma', 'error');
     } finally {
       setSendingSignature(false);
+    }
+  };
+
+  const handleCancelSignature = async (doc: CRMDocument) => {
+    const sig = doc.metadata?.signatures;
+    if (!sig?.signature_id) return;
+    if (!confirm('¿Cancelar la solicitud de firma biométrica? El enlace dejará de ser válido.')) return;
+
+    try {
+      const res = await fetch(`/api/signatures/${sig.signature_id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'cancelado' }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Error al cancelar la firma');
+      }
+
+      setLocalDocs(prev => {
+        const updated = prev.map(d => {
+          if (d.id === doc.id) {
+            const meta = { ...d.metadata };
+            delete meta.signatures;
+            return { ...d, metadata: meta };
+          }
+          return d;
+        });
+        localStorage.setItem('local_documents', JSON.stringify(updated));
+        return updated;
+      });
+      showToast('Solicitud de firma cancelada', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Error al cancelar la firma', 'error');
     }
   };
 
@@ -620,7 +663,11 @@ export function DocumentsClient() {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
-        setLocalDocs(prev => [newReqDoc, ...prev]);
+        setLocalDocs(prev => {
+          const updated = [newReqDoc, ...prev];
+          localStorage.setItem('local_documents', JSON.stringify(updated));
+          return updated;
+        });
       });
 
       setShowRequestModal(false);
@@ -915,6 +962,17 @@ export function DocumentsClient() {
                               </>
                             )}
 
+                            {doc.status === 'aprobado' && doc.metadata?.signatures?.status === 'pendiente_firma' && (
+                              <button 
+                                className={`${styles.actionBtn}`}
+                                onClick={() => handleCancelSignature(doc)}
+                                title="Cancelar Solicitud de Firma"
+                                style={{ color: 'var(--color-error)' }}
+                              >
+                                <span className="material-symbols-outlined">block</span>
+                              </button>
+                            )}
+
                             {doc.status === 'aprobado' && !doc.metadata?.signatures && (
                               <>
                                 <button 
@@ -1155,32 +1213,19 @@ export function DocumentsClient() {
               
               {/* Visor de documento (Columna Izquierda) */}
               <div style={{ flex: '1 1 400px', background: 'var(--color-surface-variant)', borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', border: '1px solid var(--color-outline-variant)' }}>
-                <div style={{ padding: '1rem', background: 'rgba(0,0,0,0.03)', borderBottom: '1px solid var(--color-outline-variant)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                 <div style={{ padding: '0.75rem', background: 'rgba(0,0,0,0.03)', borderBottom: '1px solid var(--color-outline-variant)' }}>
                   <h4 style={{ margin: 0, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>preview</span>
                     Vista Previa del Documento
                   </h4>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button className="btn btn--sm" onClick={zoomOut} title="Alejar" style={{ padding: '4px' }}><span className="material-symbols-outlined" style={{ fontSize: '18px' }}>zoom_out</span></button>
-                    <button className="btn btn--sm" onClick={zoomReset} title="Restablecer Zoom" style={{ padding: '4px 8px', fontSize: '12px' }}>{Math.round(zoomLevel * 100)}%</button>
-                    <button className="btn btn--sm" onClick={zoomIn} title="Acercar" style={{ padding: '4px' }}><span className="material-symbols-outlined" style={{ fontSize: '18px' }}>zoom_in</span></button>
-                  </div>
                 </div>
                 {selectedDocDetails.url ? (
-                  <div style={{ flex: 1, overflow: 'auto', position: 'relative', minHeight: '500px', backgroundColor: '#e9e9e9' }}>
-                    <iframe 
-                      src={selectedDocDetails.url.startsWith('blob:') || selectedDocDetails.url.startsWith('http') ? selectedDocDetails.url : supabaseGetPublicUrl('documents', selectedDocDetails.url)} 
-                      style={{ 
-                        width: '100%', 
-                        height: '100%', 
-                        border: 'none', 
-                        minHeight: '500px',
-                        transform: `scale(${zoomLevel})`,
-                        transformOrigin: 'top left'
-                      }}
-                      title="Visor de documento"
-                    />
-                  </div>
+                  <DocumentViewer
+                    url={selectedDocDetails.url.startsWith('blob:') || selectedDocDetails.url.startsWith('http') ? selectedDocDetails.url : supabaseGetPublicUrl('documents', selectedDocDetails.url)}
+                    fileName={selectedDocDetails.name}
+                    fileType={selectedDocDetails.type}
+                    metadata={selectedDocDetails.metadata}
+                  />
                 ) : (
                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '500px', flexDirection: 'column', color: 'var(--color-outline)' }}>
                     <span className="material-symbols-outlined" style={{ fontSize: '48px', marginBottom: '1rem', opacity: 0.5 }}>visibility_off</span>

@@ -1,10 +1,9 @@
 # Dependencies
 node_modules/
-app/node_modules/
 
 # Next.js build output
-app/.next/
-app/out/
+.next/
+out/
 
 # Environment variables (sensitive data)
 .env

@@ -19,22 +19,18 @@ export default function PdfViewerModal({ url, fileName, fileType, metadata, onCl
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [zoom, setZoom] = useState(1);
-  const [error, setError] = useState(false);
+  const [useCanvas, setUseCanvas] = useState(true);
   const [loading, setLoading] = useState(true);
-  const [useFallback, setUseFallback] = useState(false);
 
   const ext = fileName.split('.').pop()?.toLowerCase() || '';
   const isPdf = ext === 'pdf' || fileType === 'application/pdf';
   const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'].includes(ext);
 
   useEffect(() => {
-    if (!isPdf) return;
+    if (!isPdf || !useCanvas) return;
     let cancelled = false;
 
     setLoading(true);
-    setError(false);
-    setNumPages(null);
-    setPageNumber(1);
 
     const loadingTask = pdfjsLib.getDocument(url);
     loadingTask.promise.then(pdf => {
@@ -43,14 +39,14 @@ export default function PdfViewerModal({ url, fileName, fileType, metadata, onCl
       setNumPages(pdf.numPages);
       setLoading(false);
     }).catch(() => {
-      if (!cancelled) { setError(true); setUseFallback(true); setLoading(false); }
+      if (!cancelled) { setUseCanvas(false); setLoading(false); }
     });
 
     return () => { cancelled = true; pdfRef.current?.destroy(); };
-  }, [url, isPdf]);
+  }, [url, isPdf, useCanvas]);
 
   useEffect(() => {
-    if (!pdfRef.current || !canvasRef.current) return;
+    if (!pdfRef.current || !canvasRef.current || !useCanvas) return;
     let cancelled = false;
 
     pdfRef.current.getPage(pageNumber).then((page: any) => {
@@ -64,11 +60,11 @@ export default function PdfViewerModal({ url, fileName, fileType, metadata, onCl
       const renderCtx = { canvasContext: ctx, viewport };
       return page.render(renderCtx).promise;
     }).catch(() => {
-      if (!cancelled) setError(true);
+      if (!cancelled) setUseCanvas(false);
     });
 
     return () => { cancelled = true; };
-  }, [pageNumber, zoom, loading]);
+  }, [pageNumber, zoom, useCanvas]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -82,10 +78,10 @@ export default function PdfViewerModal({ url, fileName, fileType, metadata, onCl
 
   useEffect(() => {
     setZoom(1);
-    setError(false);
     setLoading(true);
     setNumPages(null);
     setPageNumber(1);
+    setUseCanvas(true);
     pdfRef.current?.destroy();
     pdfRef.current = null;
   }, [url]);
@@ -124,7 +120,7 @@ export default function PdfViewerModal({ url, fileName, fileType, metadata, onCl
           {fileName}
         </span>
 
-        {isPdf && numPages && (
+        {useCanvas && isPdf && numPages && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem' }}>
             <button className="btn btn--ghost btn--sm" style={{ color: '#fff' }} onClick={() => setPageNumber(p => Math.max(1, p - 1))} disabled={pageNumber <= 1} title="Página anterior">
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_left</span>
@@ -160,36 +156,27 @@ export default function PdfViewerModal({ url, fileName, fileType, metadata, onCl
       <div style={{ flex: 1, overflow: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '1rem' }}>
         {isPdf ? (
           <>
-            {loading && !error && (
+            {loading && (
               <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
                 <div className="spinner" style={{ borderColor: 'rgba(255,255,255,0.2)', borderTopColor: '#fff' }} />
                 <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem' }}>Cargando PDF...</span>
               </div>
             )}
-            {useFallback ? (
+            {useCanvas && !loading ? (
+              <canvas ref={canvasRef} style={{ maxWidth: '100%', height: 'auto' }} />
+            ) : !useCanvas && !loading ? (
               <iframe
                 src={url}
-                style={{ width: '100%', height: '100%', border: 'none', borderRadius: 8, minHeight: '60vh' }}
+                style={{ width: '100%', height: '100%', border: 'none', borderRadius: 8, minHeight: '85vh' }}
                 title={fileName}
               />
-            ) : !loading && !error ? (
-              <canvas ref={canvasRef} style={{ maxWidth: '100%', height: 'auto' }} />
-            ) : error ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', padding: '3rem', color: 'rgba(255,255,255,0.7)' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 48, color: 'rgba(255,255,255,0.4)' }}>error_outline</span>
-                <p>No se ha podido cargar el PDF.</p>
-                <button className="btn btn--primary" onClick={handleDownload}>
-                  <span className="material-symbols-outlined">download</span>
-                  Descargar {fileName}
-                </button>
-              </div>
             ) : null}
           </>
         ) : isImage ? (
           <img
             src={url} alt={fileName}
             onLoad={() => setLoading(false)}
-            onError={() => setError(true)}
+            onError={() => setLoading(false)}
             style={{ maxWidth: '100%', maxHeight: '100%', transform: `scale(${zoom})`, transformOrigin: 'top center', objectFit: 'contain' }}
           />
         ) : (

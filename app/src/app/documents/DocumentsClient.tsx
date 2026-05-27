@@ -77,6 +77,16 @@ export function DocumentsClient() {
   const [requestNotes, setRequestNotes] = useState('');
   const [generatedRequestUrl, setGeneratedRequestUrl] = useState<string | null>(null);
 
+  // OCR habilitado/deshabilitado (guardado en localStorage)
+  const [ocrEnabled, setOcrEnabled] = useState(() => {
+    const stored = localStorage.getItem('ocr_enabled');
+    return stored === null ? true : stored === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('ocr_enabled', String(ocrEnabled));
+  }, [ocrEnabled]);
+
   // Estados de carga y simulación de OCR
   const [uploading, setUploading] = useState(false);
   const [ocrStep, setOcrStep] = useState('');
@@ -278,15 +288,50 @@ export function DocumentsClient() {
         finalUrl = URL.createObjectURL(file);
       }
 
-      // Procesar OCR con Gemini
-      const ocrMetadata = await processWithGemini(file);
+      if (ocrEnabled) {
+        const ocrMetadata = await processWithGemini(file);
+        setPendingDoc({ file, path: finalUrl, ocrMetadata });
+        setShowOcrModal(true);
+      } else {
+        const newDoc: CRMDocument = {
+          id: `doc-${Date.now()}`,
+          agency_id: sanitizeUUID(agencyId)!,
+          name: file.name,
+          type: 'Documento',
+          url: finalUrl,
+          size: file.size,
+          status: 'subido',
+          visibility: 'interno',
+          uploaded_by: user?.id ? sanitizeUUID(user.id) : 'usr-001',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
 
-      setPendingDoc({
-        file,
-        path: finalUrl,
-        ocrMetadata
-      });
-      setShowOcrModal(true);
+        try {
+          const res = await saveDocument({
+            agency_id: newDoc.agency_id,
+            name: newDoc.name,
+            type: newDoc.type,
+            url: newDoc.url,
+            size: newDoc.size,
+            status: newDoc.status,
+            visibility: newDoc.visibility,
+            uploaded_by: newDoc.uploaded_by
+          });
+          if (!res.success) throw new Error(res.error);
+          newDoc.id = res.data.id;
+        } catch (dbErr) {
+          console.warn('[DB] Fallback local para guardar el documento.');
+        }
+
+        setLocalDocs(prev => {
+          const updated = [newDoc, ...prev];
+          localStorage.setItem('local_documents', JSON.stringify(updated));
+          return updated;
+        });
+        setUploading(false);
+        showToast('Documento cargado correctamente.', 'success');
+      }
     } catch (err: any) {
       console.error('Error uploading doc:', err);
       setError(err.message || 'Error en el procesamiento del archivo.');
@@ -856,6 +901,14 @@ export function DocumentsClient() {
                   <option key={t} value={t}>{t}</option>
                 ))}
               </select>
+
+              <label className={styles.ocrToggle} title={ocrEnabled ? 'OCR activado: los documentos se analizarán automáticamente' : 'OCR desactivado: los documentos se guardan sin analizar'}>
+                <span className={`material-symbols-outlined ${ocrEnabled ? styles.ocrIconOn : styles.ocrIconOff}`}>document_scanner</span>
+                <span className={styles.ocrToggleLabel}>OCR</span>
+                <div className={`${styles.toggleSwitch} ${ocrEnabled ? styles.toggleOn : ''}`} onClick={() => setOcrEnabled(prev => !prev)}>
+                  <div className={styles.toggleKnob} />
+                </div>
+              </label>
             </div>
           </div>
         )}

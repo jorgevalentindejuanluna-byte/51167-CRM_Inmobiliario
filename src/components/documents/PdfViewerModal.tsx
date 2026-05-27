@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 
 interface PdfViewerModalProps {
   url: string;
@@ -11,12 +11,6 @@ interface PdfViewerModalProps {
 }
 
 export default function PdfViewerModal({ url, fileName, fileType, metadata, onClose }: PdfViewerModalProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const pdfRef = useRef<any>(null);
-  const [numPages, setNumPages] = useState<number | null>(null);
-  const [pageNumber, setPageNumber] = useState(1);
-  const [zoom, setZoom] = useState(1);
-  const [useCanvas, setUseCanvas] = useState(true);
   const [loading, setLoading] = useState(true);
 
   const ext = fileName.split('.').pop()?.toLowerCase() || '';
@@ -24,73 +18,12 @@ export default function PdfViewerModal({ url, fileName, fileType, metadata, onCl
   const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'].includes(ext);
 
   useEffect(() => {
-    if (!isPdf || !useCanvas) return;
-    let cancelled = false;
-
-    setLoading(true);
-
-    import('pdfjs-dist').then(pdfjsLib => {
-      if (cancelled) return;
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
-
-      const loadingTask = pdfjsLib.getDocument(url);
-      loadingTask.promise.then(pdf => {
-        if (cancelled) { pdf.destroy(); return; }
-        pdfRef.current = pdf;
-        setNumPages(pdf.numPages);
-        setLoading(false);
-      }).catch((err) => {
-        console.warn('PDF.js Error:', err);
-        if (!cancelled) { setUseCanvas(false); setLoading(false); }
-      });
-    }).catch(err => {
-      console.warn('PDF.js Import Error:', err);
-      if (!cancelled) { setUseCanvas(false); setLoading(false); }
-    });
-
-    return () => { cancelled = true; pdfRef.current?.destroy(); };
-  }, [url, isPdf, useCanvas]);
-
-  useEffect(() => {
-    if (!pdfRef.current || !canvasRef.current || !useCanvas) return;
-    let cancelled = false;
-
-    pdfRef.current.getPage(pageNumber).then((page: any) => {
-      if (cancelled) return;
-      const canvas = canvasRef.current!;
-      const ctx = canvas.getContext('2d')!;
-      const viewport = page.getViewport({ scale: zoom });
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-
-      const renderCtx = { canvasContext: ctx, viewport };
-      return page.render(renderCtx).promise;
-    }).catch(() => {
-      if (!cancelled) setUseCanvas(false);
-    });
-
-    return () => { cancelled = true; };
-  }, [pageNumber, zoom, useCanvas]);
-
-  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
-      if (e.key === 'ArrowLeft') setPageNumber(p => Math.max(1, p - 1));
-      if (e.key === 'ArrowRight') setPageNumber(p => Math.min(numPages || 1, p + 1));
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose, numPages]);
-
-  useEffect(() => {
-    setZoom(1);
-    setLoading(true);
-    setNumPages(null);
-    setPageNumber(1);
-    setUseCanvas(true);
-    pdfRef.current?.destroy();
-    pdfRef.current = null;
-  }, [url]);
+  }, [onClose]);
 
   const handleDownload = () => {
     const a = document.createElement('a');
@@ -100,8 +33,6 @@ export default function PdfViewerModal({ url, fileName, fileType, metadata, onCl
   };
 
   const sig = metadata?.signatures;
-  const maxZoom = 3;
-  const minZoom = 0.5;
 
   return (
     <div
@@ -126,30 +57,6 @@ export default function PdfViewerModal({ url, fileName, fileType, metadata, onCl
           {fileName}
         </span>
 
-        {useCanvas && isPdf && numPages && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem' }}>
-            <button className="btn btn--ghost btn--sm" style={{ color: '#fff' }} onClick={() => setPageNumber(p => Math.max(1, p - 1))} disabled={pageNumber <= 1} title="Página anterior">
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_left</span>
-            </button>
-            <span style={{ minWidth: 60, textAlign: 'center' }}>{pageNumber} / {numPages}</span>
-            <button className="btn btn--ghost btn--sm" style={{ color: '#fff' }} onClick={() => setPageNumber(p => Math.min(numPages, p + 1))} disabled={pageNumber >= numPages} title="Página siguiente">
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_right</span>
-            </button>
-          </div>
-        )}
-
-        {(isPdf || isImage) && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem' }}>
-            <button className="btn btn--ghost btn--sm" style={{ color: '#fff' }} onClick={() => setZoom(z => Math.max(minZoom, +(z - 0.25).toFixed(2)))} disabled={zoom <= minZoom} title="Alejar">
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>zoom_out</span>
-            </button>
-            <span style={{ minWidth: 40, textAlign: 'center' }}>{Math.round(zoom * 100)}%</span>
-            <button className="btn btn--ghost btn--sm" style={{ color: '#fff' }} onClick={() => setZoom(z => Math.min(maxZoom, +(z + 0.25).toFixed(2)))} disabled={zoom >= maxZoom} title="Acercar">
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>zoom_in</span>
-            </button>
-          </div>
-        )}
-
         <button className="btn btn--ghost btn--sm" style={{ color: '#fff' }} onClick={handleDownload} title="Descargar">
           <span className="material-symbols-outlined" style={{ fontSize: 18 }}>download</span>
         </button>
@@ -159,32 +66,31 @@ export default function PdfViewerModal({ url, fileName, fileType, metadata, onCl
         </button>
       </div>
 
-      <div style={{ flex: 1, overflow: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '1rem' }}>
+      <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'stretch', justifyContent: 'center', padding: '1rem' }}>
         {isPdf ? (
           <>
             {loading && (
-              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', zIndex: 10 }}>
                 <div className="spinner" style={{ borderColor: 'rgba(255,255,255,0.2)', borderTopColor: '#fff' }} />
                 <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem' }}>Cargando PDF...</span>
               </div>
             )}
-            {useCanvas && !loading ? (
-              <canvas ref={canvasRef} style={{ maxWidth: '100%', height: 'auto' }} />
-            ) : !useCanvas && !loading ? (
-              <iframe
-                src={url}
-                style={{ width: '100%', height: '100%', border: 'none', borderRadius: 8, minHeight: '85vh' }}
-                title={fileName}
-              />
-            ) : null}
+            <iframe
+              src={`${url}#toolbar=1`}
+              style={{ width: '100%', height: '100%', border: 'none', borderRadius: 8, background: '#fff' }}
+              title={fileName}
+              onLoad={() => setLoading(false)}
+            />
           </>
         ) : isImage ? (
-          <img
-            src={url} alt={fileName}
-            onLoad={() => setLoading(false)}
-            onError={() => setLoading(false)}
-            style={{ maxWidth: '100%', maxHeight: '100%', transform: `scale(${zoom})`, transformOrigin: 'top center', objectFit: 'contain' }}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+            <img
+              src={url} alt={fileName}
+              onLoad={() => setLoading(false)}
+              onError={() => setLoading(false)}
+              style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+            />
+          </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', padding: '3rem', color: 'rgba(255,255,255,0.7)' }}>
             <span className="material-symbols-outlined" style={{ fontSize: 48, color: 'rgba(255,255,255,0.4)' }}>description</span>

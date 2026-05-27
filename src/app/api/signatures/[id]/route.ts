@@ -34,7 +34,7 @@ export async function GET(
 
     const { data, error } = await (supabase
       .from('signatures') as any)
-      .select('id, title, type, status, signer_name, signer_id, signer_email, document_id, operation_id, token, created_at, expires_at')
+      .select('id, title, type, status, signer_name, signer_id, signer_email, document_id, operation_id, token, created_at, expires_at, signed_at, hash_documento, hash_firmado, biometric_data, signature_image_url, signed_document_url, ip_address, browser_info, signed_url_expiry_years')
       .eq('id', id)
       .single();
 
@@ -44,16 +44,18 @@ export async function GET(
 
     const sig = data as any;
 
-    // Si la firma tiene token, validarlo contra el query param
-    if (sig.token) {
-      const { searchParams } = new URL(request.url);
-      const providedToken = searchParams.get('token');
+    // Si la firma tiene token, validarlo contra el query param (solo cuando no es admin)
+    const { searchParams } = new URL(request.url);
+    const providedToken = searchParams.get('token');
+    const isAdminRequest = searchParams.get('admin') === '1';
+
+    if (!isAdminRequest && sig.token) {
       if (!providedToken || providedToken !== sig.token) {
         return NextResponse.json({ error: 'Invalid or missing token' }, { status: 403 });
       }
     }
 
-    if (sig.status !== 'borrador' && sig.status !== 'enviado') {
+    if (!isAdminRequest && sig.status !== 'borrador' && sig.status !== 'enviado') {
       return NextResponse.json({ error: 'Signature already completed or expired' }, { status: 410 });
     }
 
@@ -71,12 +73,24 @@ export async function GET(
       id: sig.id,
       title: sig.title,
       type: sig.type,
+      status: sig.status,
       signer_name: sig.signer_name,
       signer_id: sig.signer_id,
       signer_email: sig.signer_email,
       document: documentInfo,
+      document_id: sig.document_id,
+      token: sig.token,
       created_at: sig.created_at,
       expires_at: sig.expires_at,
+      signed_at: sig.signed_at,
+      hash_documento: sig.hash_documento,
+      hash_firmado: sig.hash_firmado,
+      biometric_data: sig.biometric_data,
+      signature_image_url: sig.signature_image_url,
+      signed_document_url: sig.signed_document_url,
+      ip_address: sig.ip_address,
+      browser_info: sig.browser_info,
+      signed_url_expiry_years: sig.signed_url_expiry_years,
     });
   } catch (err) {
     console.error('[Signature API] Error fetching signature:', err);

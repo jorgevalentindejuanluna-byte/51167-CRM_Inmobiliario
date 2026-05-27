@@ -11,6 +11,7 @@ import { toUUID } from '@/lib/mock-data';
 import type { CRMDocument } from '@/lib/models/types';
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/constants';
 import styles from './page.module.css';
+import PdfAnnotator from '@/components/documents/PdfAnnotator';
 
 function sanitizeUUID(id: string | undefined): string | undefined {
   if (!id) return undefined;
@@ -52,9 +53,16 @@ export function DocumentsClient() {
   useEffect(() => {
     if (documents && documents.length > 0) {
       setLocalDocs(prev => {
-        const existingIds = new Set(prev.map((d: { id: string }) => d.id));
-        const newDocs = documents.filter((d: { id: string }) => !existingIds.has(d.id));
-        return newDocs.length > 0 ? [...prev, ...newDocs] : prev;
+        const prevMap = new Map(prev.map(d => [d.id, d]));
+        documents.forEach((d: CRMDocument) => {
+          const existing = prevMap.get(d.id);
+          if (!existing || JSON.stringify(existing.metadata) !== JSON.stringify(d.metadata) || existing.status !== d.status) {
+            prevMap.set(d.id, d);
+          }
+        });
+        const updated = Array.from(prevMap.values());
+        localStorage.setItem('local_documents', JSON.stringify(updated));
+        return updated;
       });
     }
   }, [documents]);
@@ -77,12 +85,44 @@ export function DocumentsClient() {
   const [rejectionDocId, setRejectionDocId] = useState<string | null>(null);
   const [rejectionComment, setRejectionComment] = useState('');
 
-  // Formulario de nueva solicitud
+  // Formulario de nueva solicitud (F7)
   const [requestLeadId, setRequestLeadId] = useState('');
   const [requestOperationId, setRequestOperationId] = useState('');
-  const [selectedRequiredDocs, setSelectedRequiredDocs] = useState<string[]>(['DNI / NIE']);
+  const [requestPropertyId, setRequestPropertyId] = useState('');
+  const [requestDocType, setRequestDocType] = useState('DNI/NIE');
   const [requestNotes, setRequestNotes] = useState('');
+  const [requestContactName, setRequestContactName] = useState('');
+  const [requestContactEmail, setRequestContactEmail] = useState('');
   const [generatedRequestUrl, setGeneratedRequestUrl] = useState<string | null>(null);
+  const [sendingRequest, setSendingRequest] = useState(false);
+
+  // Autofill name and email for request based on lead
+  useEffect(() => {
+    if (requestLeadId) {
+      const lead = leads.find(l => l.id === requestLeadId || toUUID(l.id) === requestLeadId);
+      if (lead) {
+        setRequestContactName(`${lead.nombre} ${lead.apellidos}`);
+        setRequestContactEmail(lead.email || '');
+      }
+    } else {
+      setRequestContactName('');
+      setRequestContactEmail('');
+    }
+  }, [requestLeadId, leads]);
+
+  // Autofill name and email for request based on operation
+  useEffect(() => {
+    if (requestOperationId) {
+      const op = operations.find(o => o.id === requestOperationId || toUUID(o.id) === requestOperationId);
+      if (op && op.cliente_id) {
+        const lead = leads.find(l => l.id === op.cliente_id || toUUID(l.id) === op.cliente_id);
+        if (lead) {
+          setRequestContactName(`${lead.nombre} ${lead.apellidos}`);
+          setRequestContactEmail(lead.email || '');
+        }
+      }
+    }
+  }, [requestOperationId, operations, leads]);
 
   // OCR habilitado/deshabilitado (guardado en localStorage)
   const [ocrEnabled, setOcrEnabled] = useState(() => {
@@ -93,6 +133,30 @@ export function DocumentsClient() {
   useEffect(() => {
     localStorage.setItem('ocr_enabled', String(ocrEnabled));
   }, [ocrEnabled]);
+
+  // Estado modal de subida de documento (F5)
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadForm, setUploadForm] = useState({
+    docType: 'DNI/NIE',
+    description: '',
+    association: 'ninguno' as 'ninguno' | 'lead' | 'property' | 'vendedor' | 'comprador',
+    leadId: '',
+    propertyId: '',
+    contactId: '',
+    visibility: 'interno' as 'interno' | 'publico',
+  });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Estado modal datos sensibles de firma (F4)
+  const [showSignatureDetailModal, setShowSignatureDetailModal] = useState(false);
+  const [selectedSignatureDetail, setSelectedSignatureDetail] = useState<any>(null);
+  const [loadingSignatureDetail, setLoadingSignatureDetail] = useState(false);
+
+  // Estado para el modal de anotaciones de PDF (F6)
+  const [showAnnotator, setShowAnnotator] = useState(false);
+  const [annotatorDoc, setAnnotatorDoc] = useState<CRMDocument | null>(null);
+  const [annotatorUrl, setAnnotatorUrl] = useState('');
+  const [annotatorOnSave, setAnnotatorOnSave] = useState<((blob: Blob) => void) | null>(null);
 
   // Estados de carga y simulación de OCR
   const [uploading, setUploading] = useState(false);
@@ -700,58 +764,267 @@ export function DocumentsClient() {
     }, 2500);
   };
 
-  // Simulación de la solicitud de documentación
-  const handleGenerateRequest = () => {
-    if (!requestLeadId && !requestOperationId) {
-      modal.showError('Error', 'Por favor, selecciona un lead o una operación.');
+  // Solicitud de documentación (F7)
+  const handleGenerateRequest = async () => {
+    if (!requestContactName.trim() || !requestContactEmail.trim() || !requestDocType) {
+      modal.showError('Error', 'Por favor, rellene el nombre, correo y tipo de documento.');
       return;
     }
 
-    const hash = Math.random().toString(36).substring(2, 10);
-    const link = `https://crm.realtopstate.com/portal/upload?req=${hash}`;
-    setGeneratedRequestUrl(link);
-    modal.showSuccess('Éxito', 'Enlace de solicitud generado correctamente.');
+    setSendingRequest(true);
+    try {
+      const res = await fetch('/api/doc-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lead_id: requestLeadId || null,
+          property_id: requestPropertyId || null,
+          contact_name: requestContactName.trim(),
+          contact_email: requestContactEmail.trim(),
+          doc_type: requestDocType,
+          notes: requestNotes,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Error al generar la solicitud');
+
+      setGeneratedRequestUrl(data.public_url);
+      
+      const newReqDoc: CRMDocument = {
+        id: data.data.id,
+        agency_id: agencyId,
+        name: `Pendiente: ${requestDocType} - ${requestContactName}`,
+        type: requestDocType,
+        url: '',
+        size: 0,
+        status: 'pendiente',
+        visibility: 'interno',
+        lead_id: requestLeadId ? sanitizeUUID(requestLeadId) : undefined,
+        property_id: requestPropertyId ? sanitizeUUID(requestPropertyId) : undefined,
+        uploaded_by: 'usr-001',
+        metadata: {
+          description: `Solicitado a través de pasarela pública. Notas: ${requestNotes || 'Ninguna'}`,
+          doc_request_id: data.data.id,
+          token: data.data.token
+        },
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      setLocalDocs(prev => {
+        const updated = [newReqDoc, ...prev];
+        localStorage.setItem('local_documents', JSON.stringify(updated));
+        return updated;
+      });
+
+      modal.showSuccess('Éxito', 'Solicitud registrada y correo enviado.');
+    } catch (err: any) {
+      modal.showError('Error', err.message || 'Error al enviar la solicitud');
+    } finally {
+      setSendingRequest(false);
+    }
   };
 
   const handleSimulateSend = (channel: 'whatsapp' | 'email') => {
     if (!generatedRequestUrl) return;
     
     const lead = leads.find(l => l.id === requestLeadId || toUUID(l.id) === requestLeadId);
-    const leadName = lead ? `${lead.nombre} ${lead.apellidos}` : 'Cliente';
-    const channelName = channel === 'whatsapp' ? 'WhatsApp' : 'Correo electrónico';
+    if (channel === 'whatsapp') {
+      const phone = lead?.telefono?.replace(/[^\d+]/g, '') || '';
+      const text = encodeURIComponent(`Hola ${requestContactName},\n\nPor favor, sube el documento requerido (${requestDocType}) a través de este enlace seguro:\n${generatedRequestUrl}`);
+      window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
+    } else {
+      modal.showInfo('Información', 'El correo electrónico ya fue enviado automáticamente al generar el enlace.');
+    }
+  };
 
-    modal.showInfo('Información', `Enviando enlace seguro por ${channelName} a ${leadName}...`);
+  // ── F4: Abrir modal de datos sensibles de firma ──
+  const handleOpenSignatureDetail = async (docOrId: any) => {
+    setShowSignatureDetailModal(true);
+    setSelectedSignatureDetail(null);
+    if (typeof docOrId === 'string') {
+      setLoadingSignatureDetail(true);
+      try {
+        const res = await fetch(`/api/signatures/${docOrId}?admin=1`);
+        if (!res.ok) throw new Error('No se pudieron obtener los datos de la firma');
+        const data = await res.json();
+        setSelectedSignatureDetail(data);
+      } catch (err: any) {
+        modal.showError('Error', err.message || 'Error al obtener datos de la firma');
+        setShowSignatureDetailModal(false);
+      } finally {
+        setLoadingSignatureDetail(false);
+      }
+    } else {
+      // Usar los metadatos del documento directamente
+      const sig = docOrId.metadata?.signatures;
+      setSelectedSignatureDetail({
+        id: sig?.signature_id || 'N/A',
+        type: (sig?.status === 'firmado_biometricamente' || sig?.status === 'pendiente_firma' || sig?.type === 'biometric') ? 'biometric' : 'digital',
+        status: sig?.status || 'Firmado',
+        token: sig?.token || 'N/A',
+        signer_name: sig?.firmante || 'Representante Legal',
+        signer_email: sig?.signer_email || docOrId.metadata?.fields?.['Email'] || '—',
+        signer_id: sig?.signer_id || docOrId.metadata?.fields?.['DNI'] || '—',
+        ip_address: sig?.ip_address || '192.168.1.144 (Simulado)',
+        browser_info: sig?.browser_info || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124.0.0.0',
+        created_at: docOrId.created_at,
+        signed_at: sig?.signed_at,
+        hash_documento: sig?.hash_documento || 'N/A',
+        hash_firmado: sig?.hash_firmado || sig?.hash_documento || 'N/A',
+        biometric_data: sig?.biometric_data || null
+      });
+      setLoadingSignatureDetail(false);
+    }
+  };
 
-    setTimeout(() => {
-      // Registrar un documento vacío en estado "pendiente" para simular el requerimiento en la lista
-      selectedRequiredDocs.forEach((docType, index) => {
-        const newReqDoc: CRMDocument = {
-          id: `req-${Date.now()}-${index}`,
+  // ── F5: Gestión del modal de subida de documento ──
+  const DOCUMENT_TYPES = [
+    'DNI/NIE', 'Pasaporte', 'Contrato de Trabajo', 'Nómina Mensual',
+    'Nota Simple Registral', 'Escritura Notarial', 'Contrato de Compraventa',
+    'Contrato de Arrendamiento', 'Contrato de Señal/Arras', 'Certificado Energético',
+    'IBI', 'Cédula de Habitabilidad', 'Licencia de Obras', 'Planos del Inmueble',
+    'Valoración de Tasadora', 'Informe de Deuda', 'Certificado de Comunidad',
+    'Seguro del Inmueble', 'Poder Notarial', 'Mandato de Captación',
+    'Encargo de Venta', 'Documento de Oferta', 'Factura de Honorarios',
+    'Recibo de Pago', 'Otros',
+  ];
+
+  const handleOpenUploadModal = () => {
+    setUploadForm({
+      docType: 'DNI/NIE',
+      description: '',
+      association: 'ninguno',
+      leadId: '',
+      propertyId: '',
+      contactId: '',
+      visibility: 'interno',
+    });
+    setShowUploadModal(true);
+  };
+
+  const handleUploadWithForm = async (file: File) => {
+    if (file.size > 10 * 1024 * 1024) {
+      setError('El archivo excede el límite de 10 MB permitido.');
+      return;
+    }
+    const allowedExtensions = ['pdf', 'png', 'jpg', 'jpeg'];
+    const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+    if (!allowedExtensions.includes(fileExtension)) {
+      setError('Formato no permitido. Solo se aceptan archivos PDF, PNG, JPG, JPEG.');
+      return;
+    }
+
+    setShowUploadModal(false);
+    setUploading(true);
+    setError(null);
+    setOcrProgress(0);
+    setOcrStep('Verificando seguridad del archivo...');
+
+    try {
+      const cleanAgencyId = sanitizeUUID(agencyId) || agencyId;
+      const folder = 'general';
+      const fileName = `${Date.now()}_${file.name}`;
+      const path = `${cleanAgencyId}/${folder}/${fileName}`;
+
+      let finalUrl = path;
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('bucket', 'documents');
+        formData.append('path', path);
+        const res = await uploadFile(formData);
+        if (!res.success) throw new Error(res.error);
+        finalUrl = res.path ?? path;
+      } catch (storageErr) {
+        console.warn('[Storage] Fallback a subida local/mock.');
+        finalUrl = URL.createObjectURL(file);
+      }
+
+      // Determinar asociaciones desde el formulario
+      const leadIdSanitized = uploadForm.association === 'lead' && uploadForm.leadId ? sanitizeUUID(uploadForm.leadId) : undefined;
+      const propertyIdSanitized = uploadForm.association === 'property' && uploadForm.propertyId ? sanitizeUUID(uploadForm.propertyId) : undefined;
+
+      if (ocrEnabled) {
+        const ocrMetadata = await processWithGemini(file);
+        setPendingDoc({
+          file,
+          path: finalUrl,
+          ocrMetadata,
+          // Pasar form data para usarlo en confirmOcrData
+          formOverride: {
+            type: uploadForm.docType,
+            description: uploadForm.description,
+            lead_id: leadIdSanitized,
+            property_id: propertyIdSanitized,
+            visibility: uploadForm.visibility,
+          }
+        });
+        setShowOcrModal(true);
+      } else {
+        const newDoc: CRMDocument = {
+          id: `doc-${Date.now()}`,
           agency_id: sanitizeUUID(agencyId)!,
-          lead_id: requestLeadId ? sanitizeUUID(requestLeadId) : undefined,
-          operation_id: requestOperationId ? sanitizeUUID(requestOperationId) : undefined,
-          name: `Pendiente: ${docType} (${leadName})`,
-          type: docType,
-          url: '',
-          status: 'pendiente',
-          visibility: 'interno',
+          name: file.name,
+          type: uploadForm.docType,
+          url: finalUrl,
+          size: file.size,
+          status: 'subido',
+          visibility: uploadForm.visibility,
+          lead_id: leadIdSanitized,
+          property_id: propertyIdSanitized,
+          metadata: uploadForm.description ? { description: uploadForm.description } : undefined,
+          uploaded_by: user?.id ? sanitizeUUID(user.id) : 'usr-001',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
+
+        try {
+          const res = await saveDocument({
+            agency_id: newDoc.agency_id,
+            name: newDoc.name,
+            type: newDoc.type,
+            url: newDoc.url,
+            size: newDoc.size,
+            status: newDoc.status,
+            visibility: newDoc.visibility,
+            lead_id: newDoc.lead_id,
+            property_id: newDoc.property_id,
+            metadata: newDoc.metadata,
+            uploaded_by: newDoc.uploaded_by
+          });
+          if (!res.success) throw new Error(res.error);
+          newDoc.id = res.data.id;
+        } catch (dbErr) {
+          console.warn('[DB] Fallback local para guardar el documento.');
+        }
+
         setLocalDocs(prev => {
-          const updated = [newReqDoc, ...prev];
+          const updated = [newDoc, ...prev];
           localStorage.setItem('local_documents', JSON.stringify(updated));
           return updated;
         });
-      });
+        setUploading(false);
+        modal.showSuccess('Éxito', 'Documento cargado correctamente.');
+      }
+    } catch (err: any) {
+      console.error('Error uploading doc:', err);
+      setError(err.message || 'Error en el procesamiento del archivo.');
+      setUploading(false);
+    }
+  };
 
-      setShowRequestModal(false);
-      setGeneratedRequestUrl(null);
-      setRequestLeadId('');
-      setRequestOperationId('');
-      setRequestNotes('');
-      modal.showSuccess('Éxito', `Solicitud de documentación enviada. Los expedientes se han registrado como "Pendientes".`);
-    }, 1500);
+  const startAnnotation = async (doc: CRMDocument, onSaveCallback: (blob: Blob) => void) => {
+    const docUrl = await resolveDocUrl(doc);
+    if (!docUrl) {
+      modal.showError('Error', 'No se pudo obtener la URL de acceso para el documento.');
+      return;
+    }
+    setAnnotatorDoc(doc);
+    setAnnotatorUrl(docUrl);
+    setAnnotatorOnSave(() => onSaveCallback);
+    setShowAnnotator(true);
   };
 
   return (
@@ -767,17 +1040,25 @@ export function DocumentsClient() {
             <span className="material-symbols-outlined">send_to_mobile</span>
             Solicitar Documentación
           </button>
-          <label className={`btn btn--primary ${styles.uploadLabel}`}>
+          {/* F5: Botón "Subir Documento" abre modal en lugar del file picker directamente */}
+          <button className={`btn btn--primary`} onClick={handleOpenUploadModal} disabled={uploading}>
             <span className="material-symbols-outlined">upload_file</span>
-            Subir Expediente
-            <input 
-              type="file" 
-              className={styles.hiddenInput} 
-              onChange={handleFileUpload}
-              disabled={uploading}
-              accept=".pdf,.png,.jpg,.jpeg"
-            />
-          </label>
+            Subir Documento
+          </button>
+          {/* Input file oculto — se activa desde el modal */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            className={styles.hiddenInput}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleUploadWithForm(file);
+              e.target.value = '';
+            }}
+            disabled={uploading}
+            accept=".pdf,.png,.jpg,.jpeg"
+            style={{ display: 'none' }}
+          />
         </div>
       </div>
 
@@ -1052,14 +1333,50 @@ export function DocumentsClient() {
                               <>
                                 <button 
                                   className={`${styles.actionBtn} ${styles.signatureBtn}`}
-                                  onClick={() => handleRequestSignature(doc)}
+                                  onClick={() => startAnnotation(doc, async (blob) => {
+                                    setUploading(true);
+                                    try {
+                                      const file = new File([blob], doc.name, { type: 'application/pdf' });
+                                      const formData = new FormData();
+                                      formData.append('file', file);
+                                      formData.append('bucket', 'documents');
+                                      formData.append('path', doc.url);
+                                      const uploadRes = await uploadFile(formData);
+                                      if (!uploadRes.success) throw new Error(uploadRes.error);
+                                      
+                                      setShowAnnotator(false);
+                                      handleRequestSignature(doc);
+                                    } catch (err: any) {
+                                      modal.showError('Error al guardar PDF anotado', err.message);
+                                    } finally {
+                                      setUploading(false);
+                                    }
+                                  })}
                                   title="Firmar con AutoFirma"
                                 >
                                   <span className="material-symbols-outlined">draw</span>
                                 </button>
                                 <button 
                                   className={`${styles.actionBtn} ${styles.biometricBtn}`}
-                                  onClick={() => handleOpenBiometricSignature(doc)}
+                                  onClick={() => startAnnotation(doc, async (blob) => {
+                                    setUploading(true);
+                                    try {
+                                      const file = new File([blob], doc.name, { type: 'application/pdf' });
+                                      const formData = new FormData();
+                                      formData.append('file', file);
+                                      formData.append('bucket', 'documents');
+                                      formData.append('path', doc.url);
+                                      const uploadRes = await uploadFile(formData);
+                                      if (!uploadRes.success) throw new Error(uploadRes.error);
+                                      
+                                      setShowAnnotator(false);
+                                      handleOpenBiometricSignature(doc);
+                                    } catch (err: any) {
+                                      modal.showError('Error al guardar PDF anotado', err.message);
+                                    } finally {
+                                      setUploading(false);
+                                    }
+                                  })}
                                   title="Solicitar Firma Biométrica"
                                 >
                                   <span className="material-symbols-outlined">edit_square</span>
@@ -1115,46 +1432,91 @@ export function DocumentsClient() {
                 <table className={styles.table}>
                   <thead>
                     <tr>
-                      <th>Documento Asociado</th>
+                      <th>Documento</th>
                       <th>Firmante</th>
                       <th>Método</th>
                       <th>Estado Firma</th>
-                      <th>Fecha de Firma</th>
-                      <th>Código Hash Seguro</th>
+                      <th>Fecha y Hora de Firma</th>
+                      <th>Código Hash SHA-256</th>
+                      <th style={{ textAlign: 'center' }}>Consulta</th>
                     </tr>
                   </thead>
                   <tbody>
                     {localDocs.filter(d => d.metadata?.signatures || d.type.toLowerCase().includes('contrato')).map(doc => {
                       const sig = doc.metadata?.signatures;
+                      // F2: determinar método según type ('biometric' o status o presencia de signature_id)
+                      const isBiometric = sig?.type === 'biometric' || sig?.status === 'firmado_biometricamente' || sig?.status === 'pendiente_firma' || !!sig?.signature_id;
+                      const docDescription = doc.metadata?.description || doc.type;
+                      const fullHash = sig?.hash_documento || 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+                      
+                      // Estado legible de la firma
+                      let statusText = 'Pendiente de firma';
+                      let statusClass = styles.pendiente;
+                      if (sig?.status === 'firmado_biometricamente') {
+                        statusText = 'Firmado Biométricamente';
+                        statusClass = styles.biometrico;
+                      } else if (sig?.status === 'firmado_completamente') {
+                        statusText = 'Firmado Completamente';
+                        statusClass = styles.aprobado;
+                      } else if (sig?.status === 'pendiente_firma') {
+                        statusText = 'Pendiente de firma';
+                        statusClass = styles.pendiente;
+                      } else if (sig?.status) {
+                        statusText = sig.status.replace(/_/g, ' ');
+                        statusText = statusText.charAt(0).toUpperCase() + statusText.slice(1);
+                      }
+
                       return (
                         <tr key={doc.id} className={styles.tableRow}>
+                          {/* F3: columna "Documento" con descripción + nombre archivo */}
                           <td className={styles.nameCell}>
                             <span className="material-symbols-outlined" style={{ color: 'var(--color-primary)' }}>draw</span>
                             <div className={styles.fileNameContainer}>
-                              <span className={styles.fileName}>{doc.name}</span>
-                              <span className={styles.fileSize}>{getRelationName(doc)}</span>
+                              <span className={styles.fileName}>{docDescription}</span>
+                              <span className={styles.fileSize} style={{ color: 'var(--color-on-surface-variant)', fontSize: '0.75rem' }}>{doc.name}</span>
                             </div>
                           </td>
                           <td>
-                            <span style={{ fontWeight: 500 }}>{sig?.firmante || 'Marcus Reed (Comprador)'}</span>
+                            <div>
+                              <span style={{ fontWeight: 500, display: 'block' }}>{sig?.firmante || sig?.signer_name || '—'}</span>
+                              {sig?.signer_email && <span style={{ fontSize: '0.75rem', color: 'var(--color-on-surface-variant)' }}>{sig.signer_email}</span>}
+                            </div>
                           </td>
+                          {/* F2: tipo correcto según campo type */}
                           <td>
-                            <span className={`${styles.statusBadge} ${sig?.status === 'firmado_biometricamente' ? styles.biometrico : styles.digital}`}>
-                              {sig?.status === 'firmado_biometricamente' ? 'Firma Biométrica Presencial' : 'AutoFirma (Firma Digital)'}
+                            <span className={`${styles.statusBadge} ${isBiometric ? styles.biometrico : styles.digital}`}>
+                              {isBiometric ? 'Firma Biométrica' : 'AutoFirma (Digital)'}
                             </span>
                           </td>
                           <td>
-                            <span className={`${styles.statusBadge} ${sig?.status === 'firmado_biometricamente' ? styles.biometrico : styles.aprobado}`}>
-                              {sig?.status === 'firmado_biometricamente' ? 'Firmado Biométricamente' : 'Firmado Completamente'}
+                            <span className={`${styles.statusBadge} ${statusClass}`}>
+                              {statusText}
                             </span>
                           </td>
+                          {/* F3: fecha Y hora */}
                           <td>
-                            <span>{sig?.signed_at ? formatDate(sig.signed_at) : formatDate(doc.updated_at)}</span>
+                            <span>{sig?.signed_at ? formatDateTime(sig.signed_at) : (sig?.status === 'pendiente_firma' ? 'Pendiente' : formatDateTime(doc.updated_at))}</span>
                           </td>
+                          {/* F3: hash completo */}
                           <td>
-                            <code className={styles.hashCode} title={sig?.hash_documento || 'Hash SHA-256'}>
-                              {(sig?.hash_documento || 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855').slice(0, 16)}...
+                            <code
+                              className={styles.hashCode}
+                              title={fullHash}
+                              style={{ fontSize: '9px', fontFamily: 'monospace', wordBreak: 'break-all', whiteSpace: 'normal', display: 'block', maxWidth: '200px' }}
+                            >
+                              {fullHash}
                             </code>
+                          </td>
+                          {/* F4: botón consulta datos sensibles */}
+                          <td style={{ textAlign: 'center' }}>
+                            <button
+                              className={styles.actionBtn}
+                              title="Ver datos sensibles de la firma"
+                              onClick={() => handleOpenSignatureDetail(sig?.signature_id ? sig.signature_id : doc)}
+                              style={{ color: 'var(--color-primary)' }}
+                            >
+                              <span className="material-symbols-outlined">manage_search</span>
+                            </button>
                           </td>
                         </tr>
                       );
@@ -1591,7 +1953,7 @@ export function DocumentsClient() {
 
                   <div className={styles.formGrid}>
                     <div className="form-group">
-                      <label>Asociar a Lead / Cliente</label>
+                      <label>Asociar a Lead / Cliente (Opcional)</label>
                       <select 
                         value={requestLeadId} 
                         onChange={(e) => {
@@ -1608,8 +1970,8 @@ export function DocumentsClient() {
                       </select>
                     </div>
 
-                    <div className="form-group" style={{ marginTop: '1rem' }}>
-                      <label>O asociar a Operación en Curso</label>
+                    <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                      <label>O asociar a Operación en Curso (Opcional)</label>
                       <select 
                         value={requestOperationId} 
                         onChange={(e) => {
@@ -1632,30 +1994,61 @@ export function DocumentsClient() {
                       </select>
                     </div>
 
-                    <div className="form-group" style={{ marginTop: '1.25rem' }}>
-                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Documentación Obligatoria Requerida</label>
-                      <div className={styles.docsChecklist}>
-                        {['DNI / NIE', 'Nómina Mensual', 'Contrato de Trabajo', 'Nota Simple', 'Recibo de IBI', 'Certificado Energético'].map((docType) => (
-                          <label key={docType} className={styles.checkLabel}>
-                            <input 
-                              type="checkbox" 
-                              checked={selectedRequiredDocs.includes(docType)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedRequiredDocs(prev => [...prev, docType]);
-                                } else {
-                                  setSelectedRequiredDocs(prev => prev.filter(d => d !== docType));
-                                }
-                              }}
-                            />
-                            <span>{docType}</span>
-                          </label>
+                    <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                      <label>Asociar a Propiedad / Inmueble (Opcional)</label>
+                      <select 
+                        value={requestPropertyId} 
+                        onChange={(e) => setRequestPropertyId(e.target.value)}
+                        className={styles.selectFilter}
+                        style={{ width: '100%' }}
+                      >
+                        <option value="">Seleccionar Propiedad...</option>
+                        {properties?.map((p: any) => (
+                          <option key={p.id} value={p.id}>
+                            {p.titulo} ({p.referencia})
+                          </option>
                         ))}
-                      </div>
+                      </select>
                     </div>
 
-                    <div className="form-group" style={{ marginTop: '1rem' }}>
-                      <label>Indicaciones adicionales para el titular</label>
+                    <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                      <label>Nombre del contacto (Destinatario)</label>
+                      <input 
+                        type="text" 
+                        className="input" 
+                        style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid var(--color-outline)' }}
+                        value={requestContactName} 
+                        onChange={(e) => setRequestContactName(e.target.value)}
+                        placeholder="Ej: Elena Vance"
+                      />
+                    </div>
+
+                    <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                      <label>Correo electrónico del contacto</label>
+                      <input 
+                        type="email" 
+                        className="input" 
+                        style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid var(--color-outline)' }}
+                        value={requestContactEmail} 
+                        onChange={(e) => setRequestContactEmail(e.target.value)}
+                        placeholder="Ej: elena.vance@gmail.com"
+                      />
+                    </div>
+
+                    <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                      <label>Tipo de documento solicitado</label>
+                      <select
+                        value={requestDocType}
+                        onChange={(e) => setRequestDocType(e.target.value)}
+                        className={styles.selectFilter}
+                        style={{ width: '100%' }}
+                      >
+                        {DOCUMENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+
+                    <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                      <label>Finalidad / Indicaciones para el titular</label>
                       <textarea 
                         className="textarea" 
                         rows={2}
@@ -1709,14 +2102,212 @@ export function DocumentsClient() {
                 {generatedRequestUrl ? 'Cerrar' : 'Cancelar'}
               </button>
               {!generatedRequestUrl && (
-                <button className="btn btn--primary" onClick={handleGenerateRequest} disabled={!requestLeadId && !requestOperationId}>
-                  Generar Enlace Seguro
+                <button className="btn btn--primary" onClick={handleGenerateRequest} disabled={sendingRequest || !requestContactName || !requestContactEmail}>
+                  {sendingRequest ? 'Generando...' : 'Generar y Enviar'}
                 </button>
               )}
             </div>
           </div>
         </div>
       )}
+
+      {/* MODAL F4: DATOS SENSIBLES DE FIRMA */}
+      {showSignatureDetailModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent} style={{ width: '680px', maxHeight: '90vh' }}>
+            <div className={styles.modalHeader}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="material-symbols-outlined" style={{ color: 'var(--color-primary)' }}>manage_search</span>
+                <h3>Datos Sensibles de la Firma Digital</h3>
+              </div>
+              <button className={styles.closeBtn} onClick={() => { setShowSignatureDetailModal(false); setSelectedSignatureDetail(null); }}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div className={styles.modalBody} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {loadingSignatureDetail ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '2rem', justifyContent: 'center' }}>
+                  <span className={`material-symbols-outlined ${styles.spinner}`}>sync</span>
+                  <span>Cargando datos de firma...</span>
+                </div>
+              ) : selectedSignatureDetail ? (
+                <>
+                  <div style={{ background: 'var(--color-surface-variant)', borderRadius: '8px', padding: '1rem' }}>
+                    <h4 style={{ margin: '0 0 0.75rem', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-on-surface-variant)' }}>Identificación</h4>
+                    <div className={styles.detailRow}><strong>ID Firma:</strong><code style={{ fontSize: '11px' }}>{selectedSignatureDetail.id}</code></div>
+                    <div className={styles.detailRow}><strong>Tipo:</strong><span>{selectedSignatureDetail.type === 'biometric' ? 'Firma Biométrica' : 'AutoFirma Digital'}</span></div>
+                    <div className={styles.detailRow}><strong>Estado:</strong><span className={`${styles.statusBadge} ${styles[selectedSignatureDetail.status]}`}>{selectedSignatureDetail.status}</span></div>
+                    <div className={styles.detailRow}><strong>Token:</strong><code style={{ fontSize: '11px', wordBreak: 'break-all' }}>{selectedSignatureDetail.token || '—'}</code></div>
+                  </div>
+                  <div style={{ background: 'var(--color-surface-variant)', borderRadius: '8px', padding: '1rem' }}>
+                    <h4 style={{ margin: '0 0 0.75rem', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-on-surface-variant)' }}>Firmante</h4>
+                    <div className={styles.detailRow}><strong>Nombre:</strong><span>{selectedSignatureDetail.signer_name}</span></div>
+                    <div className={styles.detailRow}><strong>Email:</strong><span>{selectedSignatureDetail.signer_email || '—'}</span></div>
+                    <div className={styles.detailRow}><strong>Documento:</strong><span>{selectedSignatureDetail.signer_id || '—'}</span></div>
+                    {selectedSignatureDetail.ip_address && <div className={styles.detailRow}><strong>IP:</strong><code style={{ fontSize: '11px' }}>{selectedSignatureDetail.ip_address}</code></div>}
+                    {selectedSignatureDetail.browser_info && <div className={styles.detailRow}><strong>Dispositivo:</strong><span style={{ fontSize: '12px', wordBreak: 'break-word' }}>{selectedSignatureDetail.browser_info}</span></div>}
+                  </div>
+                  <div style={{ background: 'var(--color-surface-variant)', borderRadius: '8px', padding: '1rem' }}>
+                    <h4 style={{ margin: '0 0 0.75rem', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-on-surface-variant)' }}>Fechas</h4>
+                    <div className={styles.detailRow}><strong>Creada:</strong><span>{selectedSignatureDetail.created_at ? formatDateTime(selectedSignatureDetail.created_at) : '—'}</span></div>
+                    <div className={styles.detailRow}><strong>Firmada:</strong><span>{selectedSignatureDetail.signed_at ? formatDateTime(selectedSignatureDetail.signed_at) : 'Pendiente'}</span></div>
+                    <div className={styles.detailRow}><strong>Expira:</strong><span>{selectedSignatureDetail.expires_at ? formatDateTime(selectedSignatureDetail.expires_at) : '—'}</span></div>
+                  </div>
+                  <div style={{ background: 'rgba(64,239,183,0.06)', borderRadius: '8px', padding: '1rem', border: '1px solid rgba(64,239,183,0.2)' }}>
+                    <h4 style={{ margin: '0 0 0.75rem', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-secondary)' }}>Hashes de Seguridad (SHA-256)</h4>
+                    {selectedSignatureDetail.hash_documento && (
+                      <div style={{ marginBottom: '0.75rem' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: '4px', color: 'var(--color-on-surface-variant)' }}>Hash del Documento:</div>
+                        <code style={{ fontSize: '10px', fontFamily: 'monospace', wordBreak: 'break-all', display: 'block', background: 'rgba(0,0,0,0.2)', padding: '6px 8px', borderRadius: '4px' }}>
+                          {selectedSignatureDetail.hash_documento}
+                        </code>
+                      </div>
+                    )}
+                    {selectedSignatureDetail.hash_firmado && (
+                      <div>
+                        <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: '4px', color: 'var(--color-on-surface-variant)' }}>Hash de la Firma Biométrica:</div>
+                        <code style={{ fontSize: '10px', fontFamily: 'monospace', wordBreak: 'break-all', display: 'block', background: 'rgba(0,0,0,0.2)', padding: '6px 8px', borderRadius: '4px' }}>
+                          {selectedSignatureDetail.hash_firmado}
+                        </code>
+                      </div>
+                    )}
+                  </div>
+                  {selectedSignatureDetail.biometric_data?.analysis && (
+                    <div style={{ background: 'var(--color-surface-variant)', borderRadius: '8px', padding: '1rem' }}>
+                      <h4 style={{ margin: '0 0 0.75rem', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-on-surface-variant)' }}>Análisis Biométrico</h4>
+                      {Object.entries(selectedSignatureDetail.biometric_data.analysis).map(([k, v]: any) => (
+                        <div key={k} className={styles.detailRow}>
+                          <strong>{k.replace(/([A-Z])/g, ' $1').replace(/^./, (s: string) => s.toUpperCase())}:</strong>
+                          <span>{typeof v === 'number' ? v.toFixed(2) : String(v)}</span>
+                        </div>
+                      ))}
+                      {selectedSignatureDetail.biometric_data.strokes && (
+                        <div className={styles.detailRow}><strong>Puntos de Trazo:</strong><span>{selectedSignatureDetail.biometric_data.strokes.length}</span></div>
+                      )}
+                    </div>
+                  )}
+                  {selectedSignatureDetail.signature_image_url && (
+                    <div style={{ textAlign: 'center', padding: '0.5rem', background: 'white', borderRadius: '8px' }}>
+                      <img src={selectedSignatureDetail.signature_image_url} alt="Firma biométrica" style={{ maxHeight: '80px', maxWidth: '100%' }} />
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-on-surface-variant)' }}>No se encontraron datos.</div>
+              )}
+            </div>
+            <div className={styles.modalFooter}>
+              <button className="btn btn--primary" onClick={() => { setShowSignatureDetailModal(false); setSelectedSignatureDetail(null); }}>Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL F5: SUBIR DOCUMENTO */}
+      {showUploadModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent} style={{ width: '680px', maxHeight: '90vh' }}>
+            <div className={styles.modalHeader}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="material-symbols-outlined" style={{ color: 'var(--color-primary)' }}>upload_file</span>
+                <h3>Subir Documento</h3>
+              </div>
+              <button className={styles.closeBtn} onClick={() => setShowUploadModal(false)}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div className={styles.modalBody} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <p className={styles.modalExplanation}>Complete los datos del documento antes de seleccionar el archivo. Estos metadatos se guardarán junto al expediente.</p>
+              <div className={styles.formGrid}>
+                <div className="form-group">
+                  <label>Tipo de documento</label>
+                  <select
+                    className={styles.selectFilter}
+                    style={{ width: '100%' }}
+                    value={uploadForm.docType}
+                    onChange={e => setUploadForm(f => ({ ...f, docType: e.target.value }))}
+                  >
+                    {DOCUMENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                  <label>Descripción del documento</label>
+                  <textarea
+                    className="textarea"
+                    rows={2}
+                    placeholder="Describe brevemente el contenido o finalidad del documento..."
+                    value={uploadForm.description}
+                    onChange={e => setUploadForm(f => ({ ...f, description: e.target.value }))}
+                    style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid var(--color-outline)' }}
+                  />
+                </div>
+                <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Asociar a</label>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+                    {(['ninguno', 'lead', 'property', 'vendedor', 'comprador'] as const).map(assoc => (
+                      <label key={assoc} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', padding: '6px 12px', borderRadius: '20px', border: `1px solid ${uploadForm.association === assoc ? 'var(--color-primary)' : 'var(--color-outline)'}`, background: uploadForm.association === assoc ? 'var(--color-primary-container)' : 'transparent', fontSize: '13px' }}>
+                        <input type="radio" name="association" value={assoc} checked={uploadForm.association === assoc} onChange={() => setUploadForm(f => ({ ...f, association: assoc, leadId: '', propertyId: '', contactId: '' }))} style={{ display: 'none' }} />
+                        {assoc === 'ninguno' ? 'Sin asociación' : assoc === 'lead' ? 'Lead' : assoc === 'property' ? 'Propiedad' : assoc === 'vendedor' ? 'Vendedor' : 'Comprador'}
+                      </label>
+                    ))}
+                  </div>
+                  {uploadForm.association === 'lead' && (
+                    <select className={styles.selectFilter} style={{ width: '100%' }} value={uploadForm.leadId} onChange={e => setUploadForm(f => ({ ...f, leadId: e.target.value }))}>
+                      <option value="">Seleccionar Lead...</option>
+                      {leads.map(l => <option key={l.id} value={l.id}>{l.nombre} {l.apellidos} ({l.tipo_lead})</option>)}
+                    </select>
+                  )}
+                  {uploadForm.association === 'property' && (
+                    <select className={styles.selectFilter} style={{ width: '100%' }} value={uploadForm.propertyId} onChange={e => setUploadForm(f => ({ ...f, propertyId: e.target.value }))}>
+                      <option value="">Seleccionar Propiedad...</option>
+                      {properties?.map((p: any) => <option key={p.id} value={p.id}>{p.titulo} ({p.referencia})</option>)}
+                    </select>
+                  )}
+                  {(uploadForm.association === 'vendedor' || uploadForm.association === 'comprador') && (
+                    <select className={styles.selectFilter} style={{ width: '100%' }} value={uploadForm.contactId} onChange={e => setUploadForm(f => ({ ...f, contactId: e.target.value }))}>
+                      <option value="">Seleccionar Contacto...</option>
+                      {leads.filter(l => uploadForm.association === 'vendedor' ? l.tipo_lead === 'vendedor' : l.tipo_lead === 'comprador').map(l => <option key={l.id} value={l.id}>{l.nombre} {l.apellidos}</option>)}
+                    </select>
+                  )}
+                </div>
+                <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Visibilidad</label>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {(['interno', 'publico'] as const).map(v => (
+                      <label key={v} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', padding: '6px 12px', borderRadius: '20px', border: `1px solid ${uploadForm.visibility === v ? 'var(--color-primary)' : 'var(--color-outline)'}`, background: uploadForm.visibility === v ? 'var(--color-primary-container)' : 'transparent', fontSize: '13px' }}>
+                        <input type="radio" name="visibility" value={v} checked={uploadForm.visibility === v} onChange={() => setUploadForm(f => ({ ...f, visibility: v }))} style={{ display: 'none' }} />
+                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>{v === 'interno' ? 'lock' : 'visibility'}</span>
+                        {v === 'interno' ? 'Interno (Agencia)' : 'Público (Cliente)'}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className={styles.modalFooter}>
+              <button className="btn btn--secondary" onClick={() => setShowUploadModal(false)}>Cancelar</button>
+              <button
+                className="btn btn--primary"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <span className="material-symbols-outlined">attach_file</span>
+                Seleccionar Archivo...
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showAnnotator && annotatorDoc && (
+        <PdfAnnotator
+          url={annotatorUrl}
+          fileName={annotatorDoc.name}
+          onClose={() => setShowAnnotator(false)}
+          onSave={(blob) => {
+            if (annotatorOnSave) annotatorOnSave(blob);
+          }}
+        />
+      )}
+
     </div>
   );
 }

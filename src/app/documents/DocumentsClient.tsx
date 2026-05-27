@@ -949,13 +949,13 @@ export function DocumentsClient() {
                 <table className={styles.table}>
                   <thead>
                     <tr>
-                      <th style={{ width: '100%' }}>Documento</th>
-                      <th style={{ width: '1%', whiteSpace: 'nowrap' }}>Relación</th>
-                      <th style={{ width: '1%', whiteSpace: 'nowrap' }}>Clasificación</th>
-                      <th style={{ width: '1%', whiteSpace: 'nowrap' }}>Estado</th>
-                      <th style={{ width: '1%', whiteSpace: 'nowrap' }}>Visibilidad</th>
-                      <th style={{ width: '1%', whiteSpace: 'nowrap' }}>OCR</th>
-                      <th style={{ width: '1%', whiteSpace: 'nowrap', textAlign: 'right' }}>Acciones</th>
+                      <th style={{ width: '20%' }}>Documento</th>
+                      <th>Relación</th>
+                      <th>Clasificación</th>
+                      <th>Estado</th>
+                      <th>Visibilidad</th>
+                      <th>OCR</th>
+                      <th style={{ textAlign: 'right' }}>Acciones</th>
                     </tr>
                   </thead>
                   <tbody>

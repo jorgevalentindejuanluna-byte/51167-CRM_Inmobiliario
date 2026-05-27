@@ -36,11 +36,16 @@ export function DocumentsClient() {
   // Estado local para documentos cargados y modificados dinámicamente
   const [localDocs, setLocalDocs] = useState<CRMDocument[]>([]);
 
-  // Limpiar datos locales previos (puesta a cero del módulo)
+  // Cargar datos locales previos si existen, para no perderlos al recargar
   useEffect(() => {
-    localStorage.removeItem('local_documents');
-    localStorage.removeItem('crm_mock_documents');
-    setLocalDocs([]);
+    const cached = localStorage.getItem('local_documents');
+    if (cached) {
+      try {
+        setLocalDocs(JSON.parse(cached));
+      } catch (e) {
+        setLocalDocs([]);
+      }
+    }
   }, []);
 
   // Sincronizar el estado local con los datos cargados (sin perder docs locales)

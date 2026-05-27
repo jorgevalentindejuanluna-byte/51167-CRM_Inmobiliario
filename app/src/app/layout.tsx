@@ -3,6 +3,7 @@ import '@/styles/globals.css';
 import '@/styles/components.css';
 import { AuthProvider } from '@/lib/auth-context';
 import { MessageModalProvider } from '@/lib/message-modal-context';
+import { DocumentViewerProvider } from '@/lib/document-viewer-context';
 import AppShell from '@/components/layout/AppShell';
 
 export const metadata: Metadata = {
@@ -20,7 +21,9 @@ export default function RootLayout({
       <body>
         <AuthProvider>
           <MessageModalProvider>
-            <AppShell>{children}</AppShell>
+            <DocumentViewerProvider>
+              <AppShell>{children}</AppShell>
+            </DocumentViewerProvider>
           </MessageModalProvider>
         </AuthProvider>
       </body>

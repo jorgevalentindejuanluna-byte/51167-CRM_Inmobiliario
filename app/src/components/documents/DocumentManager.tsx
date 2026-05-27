@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useDocuments } from '@/lib/use-data';
 import { supabaseUploadFile, supabaseInsert, supabaseUpdate } from '@/lib/supabase';
+import { useDocumentViewer } from '@/lib/document-viewer-context';
+import { getSignedUrlIfExists } from '@/app/actions/documents';
 import type { CRMDocument } from '@/lib/models/types';
 import { toUUID } from '@/lib/mock-data';
 import styles from './DocumentManager.module.css';
@@ -36,6 +38,7 @@ export default function DocumentManager({ leadId, operationId, propertyId, agenc
   const [showOcrModal, setShowOcrModal] = useState(false);
   const [pendingDoc, setPendingDoc] = useState<any>(null);
   const [selectedDocDetails, setSelectedDocDetails] = useState<CRMDocument | null>(null);
+  const viewer = useDocumentViewer();
 
   const simulateOCR = (fileName: string, fileSize: number): Promise<any> => {
     return new Promise((resolve) => {
@@ -231,6 +234,22 @@ export default function DocumentManager({ leadId, operationId, propertyId, agenc
     setSelectedDocDetails(doc);
   };
 
+  const handleOpenPdfViewer = async (doc: CRMDocument) => {
+    if (!doc.url) return;
+    let viewerUrl = doc.url;
+    if (viewerUrl.startsWith('ag-') || viewerUrl.startsWith('documents/')) {
+      const res = await getSignedUrlIfExists(viewerUrl, 'documents');
+      if (res?.url) viewerUrl = res.url;
+      else return;
+    }
+    viewer.openViewer({
+      url: viewerUrl,
+      fileName: doc.name,
+      fileType: doc.type,
+      metadata: doc.metadata,
+    });
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -354,6 +373,11 @@ export default function DocumentManager({ leadId, operationId, propertyId, agenc
                               <span className="material-symbols-outlined text-error" style={{ color: 'var(--color-error)' }}>cancel</span>
                             </button>
                           </>
+                        )}
+                        {doc.url && (
+                          <button className={styles.actionBtn} onClick={() => handleOpenPdfViewer(doc)} title="Ver PDF" style={{ color: 'var(--color-secondary)' }}>
+                            <span className="material-symbols-outlined">visibility</span>
+                          </button>
                         )}
                         <button className={styles.actionBtn} onClick={() => openDocDetails(doc)} title="Detalles e Historial">
                           <span className="material-symbols-outlined">info</span>

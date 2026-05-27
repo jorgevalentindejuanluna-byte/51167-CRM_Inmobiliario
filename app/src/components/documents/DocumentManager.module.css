@@ -105,6 +105,8 @@
   gap: 0.75rem;
   color: var(--color-on-surface);
   font-weight: 500;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .nameCell span {
@@ -276,9 +278,12 @@
 .ocrMetaRow {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   font-size: 0.875rem;
   padding: 4px 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  gap: 0.5rem;
 }
 
 .ocrFieldInputRow {

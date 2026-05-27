@@ -6,7 +6,7 @@ import { useDocuments, useLeads, useOperations, useProperties } from '@/lib/use-
 import { supabaseUpdate } from '@/lib/supabase';
 import { uploadFile, saveDocument, updateDocument, deleteDocument, getSignedUrlIfExists } from '@/app/actions/documents';
 import { useMessageModal } from '@/lib/message-modal-context';
-import DocumentViewer from '@/components/documents/DocumentViewer';
+import { useDocumentViewer } from '@/lib/document-viewer-context';
 import { toUUID } from '@/lib/mock-data';
 import type { CRMDocument } from '@/lib/models/types';
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/constants';
@@ -25,6 +25,7 @@ export function DocumentsClient() {
   const { token, user } = useAuth();
   const agencyId = user?.agency_id || 'ag-001';
   const modal = useMessageModal();
+  const viewer = useDocumentViewer();
   
   // Hooks de datos
   const { data: documents, loading: docsLoading } = useDocuments() as any;
@@ -123,6 +124,22 @@ export function DocumentsClient() {
       setUrlLoading(false);
     });
   }, [selectedDocDetails]);
+
+  const handleOpenPdfViewer = async (doc: CRMDocument) => {
+    if (!doc.url) return;
+    let viewerUrl = doc.url;
+    if (viewerUrl.startsWith('ag-') || viewerUrl.startsWith('documents/')) {
+      const res = await getSignedUrlIfExists(viewerUrl, 'documents');
+      if (res?.url) viewerUrl = res.url;
+      else return;
+    }
+    viewer.openViewer({
+      url: viewerUrl,
+      fileName: doc.name,
+      fileType: doc.type,
+      metadata: doc.metadata,
+    });
+  };
 
   const [zoomLevel, setZoomLevel] = useState(1);
   const zoomIn = () => setZoomLevel(prev => Math.min(prev + 0.25, 3));
@@ -1065,12 +1082,22 @@ export function DocumentsClient() {
                               </>
                             )}
 
+                            {doc.url && (
+                              <button
+                                className={styles.actionBtn}
+                                onClick={() => handleOpenPdfViewer(doc)}
+                                title="Abrir visor PDF"
+                                style={{ color: 'var(--color-secondary)' }}
+                              >
+                                <span className="material-symbols-outlined">visibility</span>
+                              </button>
+                            )}
                             <button 
                               className={styles.actionBtn}
                               onClick={() => setSelectedDocDetails(doc)}
                               title="Ver Ficha y Auditoría"
                             >
-                              <span className="material-symbols-outlined">visibility</span>
+                              <span className="material-symbols-outlined">info</span>
                             </button>
                             <button 
                               className={styles.actionBtn}
@@ -1286,40 +1313,17 @@ export function DocumentsClient() {
             
             <div className={styles.modalBody} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               
-              {/* Visor de documento */}
-              <div style={{ background: 'var(--color-surface-variant)', borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', border: '1px solid var(--color-outline-variant)' }}>
-                 <div style={{ padding: '0.75rem', background: 'rgba(0,0,0,0.03)', borderBottom: '1px solid var(--color-outline-variant)' }}>
-                  <h4 style={{ margin: 0, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>preview</span>
-                    Vista Previa del Documento
-                  </h4>
-                </div>
-                {selectedDocDetails.url ? (
-                  urlLoading ? (
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px', flexDirection: 'column', color: 'var(--color-outline)' }}>
-                      <div className="spinner" />
-                      <p style={{ textAlign: 'center', maxWidth: '250px', marginTop: '1rem' }}>Cargando documento...</p>
-                    </div>
-                  ) : resolvedDocUrl ? (
-                    <DocumentViewer
-                      url={resolvedDocUrl}
-                      fileName={selectedDocDetails.name}
-                      fileType={selectedDocDetails.type}
-                      metadata={selectedDocDetails.metadata}
-                    />
-                  ) : (
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px', flexDirection: 'column', color: 'var(--color-outline)' }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '48px', marginBottom: '1rem', opacity: 0.5 }}>visibility_off</span>
-                      <p style={{ textAlign: 'center', maxWidth: '250px' }}>Vista previa no disponible. El archivo no se encuentra en el almacenamiento.</p>
-                    </div>
-                  )
-                ) : (
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px', flexDirection: 'column', color: 'var(--color-outline)' }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '48px', marginBottom: '1rem', opacity: 0.5 }}>visibility_off</span>
-                    <p style={{ textAlign: 'center', maxWidth: '250px' }}>Vista previa no disponible para documentos de demostración sin archivo asociado.</p>
-                  </div>
-                )}
-              </div>
+              {/* Visor de documento — botón que abre modal nativo */}
+              {selectedDocDetails.url && (
+                <button
+                  className="btn btn--primary"
+                  style={{ width: '100%', justifyContent: 'center', gap: '0.5rem', padding: '1rem', fontSize: '0.95rem', whiteSpace: 'normal', wordBreak: 'break-word', textAlign: 'center' }}
+                  onClick={() => handleOpenPdfViewer(selectedDocDetails)}
+                >
+                  <span className="material-symbols-outlined" style={{ flexShrink: 0 }}>visibility</span>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>Abrir visor PDF — {selectedDocDetails.name}</span>
+                </button>
+              )}
 
               {/* Ficha de Detalles */}
               <div className={styles.detailsGrid} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>

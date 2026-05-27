@@ -247,6 +247,8 @@
   font-size: 13px;
   border-bottom: 1px solid rgba(80, 69, 59, 0.5);
   vertical-align: middle;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .table tr:hover td {

@@ -123,6 +123,8 @@
   color: var(--color-on-surface);
   text-align: right;
   max-width: 60%;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .badge {
@@ -259,9 +261,12 @@
 .confirmRow {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   font-size: 0.82rem;
   padding: 0.2rem 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  gap: 0.5rem;
 }
 
 .confirmLabel {

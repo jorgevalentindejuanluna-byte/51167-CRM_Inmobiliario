@@ -17,6 +17,7 @@
   gap: var(--space-md);
   margin-bottom: var(--space-lg);
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .title {
@@ -240,6 +241,8 @@
   color: var(--color-on-surface);
   margin-bottom: var(--space-xs);
   line-height: 1.4;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .cardPrice {
@@ -257,6 +260,8 @@
   font-size: 0.8rem;
   color: var(--color-on-surface-variant);
   margin-bottom: var(--space-sm);
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .cardClientIcon {

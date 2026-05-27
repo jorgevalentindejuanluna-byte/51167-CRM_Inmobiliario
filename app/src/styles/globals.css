@@ -142,6 +142,20 @@ img {
   line-height: var(--text-helper-line);
 }
 
+/* ── Overflow prevention ── */
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.text-wrap {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  hyphens: auto;
+}
+
 /* ── Color utilities ── */
 .text-primary { color: var(--color-primary); }
 .text-secondary { color: var(--color-secondary); }

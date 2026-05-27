@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useDocumentViewer } from '@/lib/document-viewer-context';
 import styles from './page.module.css';
 
 interface StrokePoint {
@@ -461,6 +462,7 @@ function ConfirmStep({
   result: SignResult;
   signedDocUrl?: string;
 }) {
+  const viewer = useDocumentViewer();
   const durationSeconds = (result.biometric_summary.duration_ms / 1000).toFixed(1);
   const signedDate = new Date(result.document.signed_at).toLocaleString('es-ES', {
     day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit',
@@ -553,15 +555,13 @@ function ConfirmStep({
 
       <div className={styles.actions}>
         {signedDocUrl && (
-          <a
-            href={signedDocUrl}
-            target="_blank"
+          <button
+            onClick={() => viewer.openViewer({ url: signedDocUrl, fileName: request.title || 'Documento Firmado', fileType: 'application/pdf' })}
             className={`btn btn--secondary btn--lg ${styles.fullWidth}`}
-            style={{ textDecoration: 'none' }}
           >
-            <span className="material-symbols-outlined">download</span>
-            Descargar Documento Firmado
-          </a>
+            <span className="material-symbols-outlined">visibility</span>
+            Ver Documento Firmado
+          </button>
         )}
         <button
           className={`btn btn--primary btn--lg ${styles.fullWidth}`}

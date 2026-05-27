@@ -1118,11 +1118,13 @@ export function DocumentsClient() {
                             <span style={{ fontWeight: 500 }}>{sig?.firmante || 'Marcus Reed (Comprador)'}</span>
                           </td>
                           <td>
-                            <span className="badge badge--neutral">AutoFirma (Firma Digital)</span>
+                            <span className={`${styles.statusBadge} ${sig?.status === 'firmado_biometricamente' ? styles.biometrico : styles.digital}`}>
+                              {sig?.status === 'firmado_biometricamente' ? 'Firma Biométrica Presencial' : 'AutoFirma (Firma Digital)'}
+                            </span>
                           </td>
                           <td>
-                            <span className={`${styles.statusBadge} ${styles.aprobado}`}>
-                              Firmado Completamente
+                            <span className={`${styles.statusBadge} ${sig?.status === 'firmado_biometricamente' ? styles.biometrico : styles.aprobado}`}>
+                              {sig?.status === 'firmado_biometricamente' ? 'Firmado Biométricamente' : 'Firmado Completamente'}
                             </span>
                           </td>
                           <td>

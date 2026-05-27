@@ -1,9 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import * as pdfjsLib from 'pdfjs-dist';
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 interface PdfViewerModalProps {
   url: string;
@@ -32,13 +29,22 @@ export default function PdfViewerModal({ url, fileName, fileType, metadata, onCl
 
     setLoading(true);
 
-    const loadingTask = pdfjsLib.getDocument(url);
-    loadingTask.promise.then(pdf => {
-      if (cancelled) { pdf.destroy(); return; }
-      pdfRef.current = pdf;
-      setNumPages(pdf.numPages);
-      setLoading(false);
-    }).catch(() => {
+    import('pdfjs-dist').then(pdfjsLib => {
+      if (cancelled) return;
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+
+      const loadingTask = pdfjsLib.getDocument(url);
+      loadingTask.promise.then(pdf => {
+        if (cancelled) { pdf.destroy(); return; }
+        pdfRef.current = pdf;
+        setNumPages(pdf.numPages);
+        setLoading(false);
+      }).catch((err) => {
+        console.warn('PDF.js Error:', err);
+        if (!cancelled) { setUseCanvas(false); setLoading(false); }
+      });
+    }).catch(err => {
+      console.warn('PDF.js Import Error:', err);
       if (!cancelled) { setUseCanvas(false); setLoading(false); }
     });
 

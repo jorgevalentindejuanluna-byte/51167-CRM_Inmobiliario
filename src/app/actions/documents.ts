@@ -38,7 +38,7 @@ export async function getSignedUrl(path: string, bucket: string = 'documents') {
   try {
     const { data, error } = await supabaseServer.storage
       .from(bucket)
-      .createSignedUrl(path, 3600);
+      .createSignedUrl(path, 3600, { download: false });
 
     if (error || !data) {
       console.error('Error generando signed URL:', error);
@@ -65,7 +65,7 @@ export async function getSignedUrlIfExists(path: string, bucket: string = 'docum
 
     const { data, error } = await supabaseServer.storage
       .from(bucket)
-      .createSignedUrl(path, 3600);
+      .createSignedUrl(path, 3600, { download: false });
 
     if (error || !data) {
       console.error('Error generando signed URL:', error);

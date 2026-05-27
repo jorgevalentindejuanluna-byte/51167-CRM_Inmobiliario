@@ -1,7 +1,9 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
-import PdfViewerModal from '@/components/documents/PdfViewerModal';
+import dynamic from 'next/dynamic';
+
+const PdfViewerModal = dynamic(() => import('@/components/documents/PdfViewerModal'), { ssr: false });
 
 interface ViewerOptions {
   url: string;

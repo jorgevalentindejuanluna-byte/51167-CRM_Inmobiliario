@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (profile && profile.length > 0) {
-        setUser(profile[0]);
+        setUser({ ...profile[0], user_metadata: authData.user_metadata });
         setToken(accessToken);
       } else {
         // Si no hay perfil pero hay auth, borrar token y redirigir

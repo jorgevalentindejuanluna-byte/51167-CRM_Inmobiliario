@@ -64,6 +64,7 @@ export interface User {
   avatar_url?: string;
   created_at: string;
   updated_at: string;
+  user_metadata?: any;
 }
 
 // ── Lead (5.3 PRD) ──

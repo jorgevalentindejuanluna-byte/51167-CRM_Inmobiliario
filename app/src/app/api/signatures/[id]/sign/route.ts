@@ -70,8 +70,8 @@ export async function POST(
           .from('documents')
           .upload(imagePath, buffer, { contentType: 'image/png', upsert: true });
         if (!uploadError) {
-          const { data: publicUrl } = supabase.storage.from('documents').getPublicUrl(imagePath);
-          signatureImageUrl = publicUrl.publicUrl;
+          const { data: signed } = await supabase.storage.from('documents').createSignedUrl(imagePath, 60 * 60 * 24 * 365);
+          if (signed) signatureImageUrl = signed.signedUrl;
         }
       } catch (e) {
         console.warn('[Signature] Could not upload signature image:', e);
@@ -163,8 +163,8 @@ export async function POST(
           .from('documents')
           .upload(signedPath, Buffer.from(signedPdfBytes), { contentType: 'application/pdf', upsert: true });
         if (!signedUploadError) {
-          const { data: publicUrl } = supabase.storage.from('documents').getPublicUrl(signedPath);
-          signedDocUrl = publicUrl.publicUrl;
+          const { data: signed } = await supabase.storage.from('documents').createSignedUrl(signedPath, 60 * 60 * 24 * 365);
+          if (signed) signedDocUrl = signed.signedUrl;
         }
       } catch (pdfErr) {
         console.warn('[Signature] PDF merge failed, saving signature-only:', pdfErr);
@@ -193,8 +193,8 @@ export async function POST(
         const standalonePath = `signed/standalone_${id}_${Date.now()}.pdf`;
         const { error: upErr } = await supabase.storage.from('documents').upload(standalonePath, Buffer.from(standalonePdfBytes), { contentType: 'application/pdf', upsert: true });
         if (!upErr) {
-          const { data: publicUrl } = supabase.storage.from('documents').getPublicUrl(standalonePath);
-          signedDocUrl = publicUrl.publicUrl;
+          const { data: signed } = await supabase.storage.from('documents').createSignedUrl(standalonePath, 60 * 60 * 24 * 365);
+          if (signed) signedDocUrl = signed.signedUrl;
         }
       } catch (certErr) {
         console.warn('[Signature] Certificate PDF creation failed:', certErr);

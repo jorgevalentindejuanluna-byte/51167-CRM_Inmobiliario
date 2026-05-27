@@ -287,6 +287,10 @@ export function DocumentsClient() {
 
   // Mapear IDs a nombres descriptivos
   const getRelationName = (doc: CRMDocument) => {
+    if (doc.property_id) {
+      const prop = properties?.find(p => p.id === doc.property_id || toUUID(p.id) === doc.property_id) as any;
+      return prop ? `Inmueble: ${prop.titulo} (${prop.referencia})` : `Inmueble #${doc.property_id.slice(-6)}`;
+    }
     if (doc.lead_id) {
       const lead = leads.find(l => l.id === doc.lead_id || toUUID(l.id) === doc.lead_id);
       return lead ? `Lead: ${lead.nombre} ${lead.apellidos}` : `Lead #${doc.lead_id.slice(-6)}`;

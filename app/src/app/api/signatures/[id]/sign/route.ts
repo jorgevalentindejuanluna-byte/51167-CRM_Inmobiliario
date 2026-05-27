@@ -313,9 +313,9 @@ export async function POST(
         signed_at: signedAt,
       },
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error('[Signature API] Error signing:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: err?.message || err?.toString() || 'Internal server error' }, { status: 500 });
   }
 }
 

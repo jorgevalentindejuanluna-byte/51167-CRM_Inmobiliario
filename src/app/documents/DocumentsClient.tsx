@@ -949,28 +949,30 @@ export function DocumentsClient() {
                 <table className={styles.table}>
                   <thead>
                     <tr>
-                      <th style={{ width: 'auto' }}>Documento</th>
-                      <th style={{ width: '90px' }}>Relación</th>
-                      <th style={{ width: '100px' }}>Clasificación</th>
-                      <th style={{ width: '80px' }}>Estado</th>
-                      <th style={{ width: '70px' }}>Visibilidad</th>
-                      <th style={{ width: '70px' }}>OCR</th>
-                      <th style={{ width: '60px', textAlign: 'right' }}>Acciones</th>
+                      <th style={{ width: '100%' }}>Documento</th>
+                      <th style={{ width: '1%', whiteSpace: 'nowrap' }}>Relación</th>
+                      <th style={{ width: '1%', whiteSpace: 'nowrap' }}>Clasificación</th>
+                      <th style={{ width: '1%', whiteSpace: 'nowrap' }}>Estado</th>
+                      <th style={{ width: '1%', whiteSpace: 'nowrap' }}>Visibilidad</th>
+                      <th style={{ width: '1%', whiteSpace: 'nowrap' }}>OCR</th>
+                      <th style={{ width: '1%', whiteSpace: 'nowrap', textAlign: 'right' }}>Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredDocs.map((doc) => (
                       <tr key={doc.id} className={styles.tableRow}>
                         <td className={styles.nameCell}>
-                          <div className={styles.fileNameContainer}>
-                            <span className={styles.fileName}>{doc.type || doc.name}</span>
+                          <div className={styles.fileNameContainer} style={{ flex: 'initial' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <span className={styles.fileName}>{doc.name}</span>
+                              <span className={`${styles.fileIcon} material-symbols-outlined`} style={{ fontSize: '18px' }} title={doc.name}>
+                                {doc.name.toLowerCase().endsWith('.pdf') ? 'picture_as_pdf' : 'description'}
+                              </span>
+                            </div>
                             <span className={styles.fileSize}>
                               {doc.size ? `${(doc.size / 1024).toFixed(1)} KB` : 'Solicitado'}
                             </span>
                           </div>
-                          <span className={`${styles.fileIcon} material-symbols-outlined`} title={doc.name}>
-                            {doc.name.toLowerCase().endsWith('.pdf') ? 'picture_as_pdf' : 'description'}
-                          </span>
                         </td>
                         <td>
                           <span className={styles.relationText}>{getRelationName(doc)}</span>

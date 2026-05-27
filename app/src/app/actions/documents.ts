@@ -52,6 +52,43 @@ export async function getSignedUrl(path: string, bucket: string = 'documents') {
   }
 }
 
+export async function getSignedUrlIfExists(path: string, bucket: string = 'documents') {
+  try {
+    const { data: exists } = await supabaseServer.storage
+      .from(bucket)
+      .list(getParentFolder(path), { search: getFileName(path), limit: 1 });
+
+    const fileExists = exists?.some(f => f.name === getFileName(path)) ?? false;
+    if (!fileExists) {
+      return { success: false, error: 'El archivo no existe en el almacenamiento' };
+    }
+
+    const { data, error } = await supabaseServer.storage
+      .from(bucket)
+      .createSignedUrl(path, 3600);
+
+    if (error || !data) {
+      console.error('Error generando signed URL:', error);
+      return { success: false, error: error?.message || 'No se pudo generar la URL firmada' };
+    }
+
+    return { success: true, url: data.signedUrl };
+  } catch (err: any) {
+    console.error('getSignedUrl action failed:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+function getParentFolder(filePath: string): string {
+  const lastSlash = filePath.lastIndexOf('/');
+  return lastSlash > 0 ? filePath.slice(0, lastSlash) : '';
+}
+
+function getFileName(filePath: string): string {
+  const lastSlash = filePath.lastIndexOf('/');
+  return lastSlash >= 0 ? filePath.slice(lastSlash + 1) : filePath;
+}
+
 export async function saveDocument(documentData: any) {
   try {
     const { error, data } = await supabaseServer

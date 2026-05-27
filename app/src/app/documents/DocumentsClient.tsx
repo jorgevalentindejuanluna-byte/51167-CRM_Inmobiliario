@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useDocuments, useLeads, useOperations, useProperties } from '@/lib/use-data';
 import { supabaseUpdate } from '@/lib/supabase';
-import { uploadFile, saveDocument, updateDocument, deleteDocument, getSignedUrl } from '@/app/actions/documents';
+import { uploadFile, saveDocument, updateDocument, deleteDocument, getSignedUrlIfExists } from '@/app/actions/documents';
 import { useMessageModal } from '@/lib/message-modal-context';
 import DocumentViewer from '@/components/documents/DocumentViewer';
 import { toUUID } from '@/lib/mock-data';
@@ -113,15 +113,8 @@ export function DocumentsClient() {
       return;
     }
 
-    const isMockDoc = /^doc-\d+$/.test(selectedDocDetails.id) || !/^[0-9a-f]{8}-/.test(selectedDocDetails.id);
-    if (isMockDoc) {
-      setResolvedDocUrl(null);
-      setUrlLoading(false);
-      return;
-    }
-
     setUrlLoading(true);
-    getSignedUrl(selectedDocDetails.url).then(res => {
+    getSignedUrlIfExists(selectedDocDetails.url).then(res => {
       if (res.success && res.url) {
         setResolvedDocUrl(res.url);
       } else {

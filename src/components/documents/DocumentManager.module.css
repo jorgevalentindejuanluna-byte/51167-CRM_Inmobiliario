@@ -1,0 +1,318 @@
+.container {
+  background: var(--color-surface);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.uploadLabel {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+/* --- OCR Progress Bar --- */
+.ocrProgressContainer {
+  background: rgba(242, 190, 140, 0.08);
+  border: 1px solid rgba(242, 190, 140, 0.2);
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1.5rem;
+  animation: pulse 2s infinite ease-in-out;
+}
+
+.ocrProgressHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.progressBar {
+  height: 6px;
+  background: var(--color-surface-highest);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progressBarFill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: var(--radius-full);
+  transition: width 0.4s ease;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.85; }
+  50% { opacity: 1; }
+  100% { opacity: 0.85; }
+}
+
+.error {
+  background: rgba(255, 180, 171, 0.15);
+  border: 1px solid var(--color-error);
+  color: var(--color-error);
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.clearError {
+  background: none;
+  border: none;
+  color: var(--color-error);
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  opacity: 0.8;
+}
+
+.clearError:hover {
+  opacity: 1;
+}
+
+.empty {
+  text-align: center;
+  padding: 3rem;
+  color: var(--color-on-surface-variant);
+}
+
+/* --- Table styling --- */
+.nameCell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--color-on-surface);
+  font-weight: 500;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.nameCell span {
+  color: var(--color-primary);
+}
+
+.statusBadge {
+  text-transform: uppercase;
+  font-weight: 700;
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  padding: 4px 8px;
+  border-radius: var(--radius-full);
+}
+
+.statusBadge.pendiente {
+  background: var(--color-surface-highest);
+  color: var(--color-on-surface-variant);
+}
+
+.statusBadge.subido {
+  background: rgba(242, 190, 140, 0.12);
+  color: var(--color-primary);
+}
+
+.statusBadge.aprobado {
+  background: rgba(64, 239, 183, 0.12);
+  color: var(--color-secondary);
+}
+
+.statusBadge.rechazado {
+  background: rgba(255, 180, 171, 0.12);
+  color: var(--color-error);
+}
+
+.visibilityBtn {
+  background: var(--color-surface-low);
+  border: 1px solid var(--color-outline-variant);
+  color: var(--color-on-surface-variant);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.visibilityBtn:hover {
+  background: var(--color-surface-high);
+  color: var(--color-on-surface);
+  border-color: var(--color-outline);
+}
+
+.ocrInfoBtn {
+  background: rgba(64, 239, 183, 0.08);
+  border: 1px solid rgba(64, 239, 183, 0.2);
+  color: var(--color-secondary);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.ocrInfoBtn:hover {
+  background: rgba(64, 239, 183, 0.15);
+}
+
+.actionsCell {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.actionBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-on-surface-variant);
+  padding: 0.35rem;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  transition: all var(--transition-fast);
+}
+
+.actionBtn:hover {
+  background: var(--color-surface-highest);
+  color: var(--color-on-surface);
+}
+
+/* --- Modales (Glassmorphism & Shadows) --- */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(17, 13, 10, 0.75);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.modalContent {
+  width: 100%;
+  max-width: 540px;
+  background: var(--color-surface);
+  border: var(--glass-border);
+  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  animation: scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.modalHeader {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--color-outline-variant);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+}
+
+.closeModalBtn {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  background: none;
+  border: none;
+  color: var(--color-on-surface-variant);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.closeModalBtn:hover {
+  color: var(--color-on-surface);
+}
+
+.modalBody {
+  padding: 1.5rem;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.modalFooter {
+  padding: 1.25rem 1.5rem;
+  background: var(--color-surface-low);
+  border-top: 1px solid var(--color-outline-variant);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.ocrFieldsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ocrMetaRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  font-size: 0.875rem;
+  padding: 4px 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  gap: 0.5rem;
+}
+
+.ocrFieldInputRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ocrFieldInputRow label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant);
+  letter-spacing: 0.05em;
+}
+
+.modalDivider {
+  border: none;
+  height: 1px;
+  background: var(--color-outline-variant);
+  margin: 8px 0;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}

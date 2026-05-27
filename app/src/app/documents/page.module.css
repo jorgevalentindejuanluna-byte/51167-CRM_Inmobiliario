@@ -903,6 +903,8 @@
   align-items: flex-start;
   gap: 0.75rem;
   font-size: 0.875rem;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .detailRow strong {
@@ -910,6 +912,13 @@
   font-weight: 600;
   color: var(--color-on-surface-variant);
   flex-shrink: 0;
+}
+
+.detailRow span,
+.detailRow div {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  min-width: 0;
 }
 
 /* ── Sección OCR en Detalles ── */
@@ -1117,22 +1126,21 @@
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
-  .container { padding: 1rem; }
+  .modalContent {
+    width: 95vw;
+    margin: 16px;
+    max-height: 85vh;
+  }
   
-  .header { flex-direction: column; }
-  .headerActions { width: 100%; flex-wrap: wrap; }
-  
-  .kpiGrid { grid-template-columns: 1fr 1fr; }
-  
-  .filtersBar { flex-direction: column; align-items: stretch; }
-  .filtersGroup { flex-wrap: wrap; }
-  
-  .nameCell { min-width: 160px; }
-  .fileName { max-width: 130px; }
-  
-  .ocrMetaRow strong { min-width: 100px; }
-  .detailRow strong { min-width: 120px; }
-  
-  .docsChecklist { grid-template-columns: 1fr; }
-  .shareButtonsGroup { flex-direction: column; }
-}
+  .modalBody {
+    flex-direction: column;
+  }
+
+  .detailRow {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .detailRow strong {
+    min-width: unset;
+  }

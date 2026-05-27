@@ -1271,21 +1271,21 @@ export function DocumentsClient() {
       {/* MODAL 2: DETALLES COMPLETOS E HISTORIAL DE AUDITORÍA */}
       {selectedDocDetails && (
         <div className={styles.modalOverlay}>
-          <div className={styles.modalContent} style={{ maxWidth: '1100px', width: '95vw', maxHeight: '95vh' }}>
+          <div className={styles.modalContent} style={{ width: '700px', maxHeight: '90vh' }}>
             <div className={styles.modalHeader}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className="material-symbols-outlined" style={{ color: 'var(--color-primary)' }}>description</span>
-                <h3>Expediente: {selectedDocDetails.name}</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                <span className="material-symbols-outlined" style={{ color: 'var(--color-primary)', flexShrink: 0 }}>description</span>
+                <h3 style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Expediente: {selectedDocDetails.name}</h3>
               </div>
               <button className={styles.closeBtn} onClick={() => setSelectedDocDetails(null)}>
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
             
-            <div className={styles.modalBody} style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+            <div className={styles.modalBody} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               
-              {/* Visor de documento (Columna Izquierda) */}
-              <div style={{ flex: '1 1 400px', background: 'var(--color-surface-variant)', borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', border: '1px solid var(--color-outline-variant)' }}>
+              {/* Visor de documento */}
+              <div style={{ background: 'var(--color-surface-variant)', borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', border: '1px solid var(--color-outline-variant)' }}>
                  <div style={{ padding: '0.75rem', background: 'rgba(0,0,0,0.03)', borderBottom: '1px solid var(--color-outline-variant)' }}>
                   <h4 style={{ margin: 0, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>preview</span>
@@ -1294,7 +1294,7 @@ export function DocumentsClient() {
                 </div>
                 {selectedDocDetails.url ? (
                   urlLoading ? (
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '500px', flexDirection: 'column', color: 'var(--color-outline)' }}>
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px', flexDirection: 'column', color: 'var(--color-outline)' }}>
                       <div className="spinner" />
                       <p style={{ textAlign: 'center', maxWidth: '250px', marginTop: '1rem' }}>Cargando documento...</p>
                     </div>
@@ -1306,21 +1306,21 @@ export function DocumentsClient() {
                       metadata={selectedDocDetails.metadata}
                     />
                   ) : (
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '500px', flexDirection: 'column', color: 'var(--color-outline)' }}>
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px', flexDirection: 'column', color: 'var(--color-outline)' }}>
                       <span className="material-symbols-outlined" style={{ fontSize: '48px', marginBottom: '1rem', opacity: 0.5 }}>visibility_off</span>
                       <p style={{ textAlign: 'center', maxWidth: '250px' }}>Vista previa no disponible. El archivo no se encuentra en el almacenamiento.</p>
                     </div>
                   )
                 ) : (
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '500px', flexDirection: 'column', color: 'var(--color-outline)' }}>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px', flexDirection: 'column', color: 'var(--color-outline)' }}>
                     <span className="material-symbols-outlined" style={{ fontSize: '48px', marginBottom: '1rem', opacity: 0.5 }}>visibility_off</span>
                     <p style={{ textAlign: 'center', maxWidth: '250px' }}>Vista previa no disponible para documentos de demostración sin archivo asociado.</p>
                   </div>
                 )}
               </div>
 
-              {/* Ficha de Detalles (Columna Derecha) */}
-              <div className={styles.detailsGrid} style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Ficha de Detalles */}
+              <div className={styles.detailsGrid} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <div className={styles.detailRow}>
                   <strong>Nombre de Archivo:</strong>
                   <span>{selectedDocDetails.name}</span>

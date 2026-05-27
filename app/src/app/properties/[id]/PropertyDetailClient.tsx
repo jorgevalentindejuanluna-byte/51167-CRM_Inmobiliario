@@ -6,7 +6,7 @@ import { useProperties, useOperations, useUsers, saveLocalMock } from '@/lib/use
 import { useAuth } from '@/lib/auth-context';
 import { updateProperty } from '@/app/actions/properties';
 import { toUUID } from '@/lib/mock-data';
-import { showToast } from '@/lib/toast';
+import { useMessageModal } from '@/lib/message-modal-context';
 import { formatCurrency, formatDate } from '@/lib/constants';
 import DocumentManager from '@/components/documents/DocumentManager';
 import CadastralAnalysis from '@/components/properties/CadastralAnalysis';
@@ -20,6 +20,7 @@ export function PropertyDetailClient({ id }: { id: string }) {
   const { data: allProperties } = useProperties();
   const { data: users } = useUsers();
   const { data: allOperations } = useOperations();
+  const modal = useMessageModal();
 
   const property = allProperties.find(p => p.id === propertyId || toUUID(p.id) === propertyId);
   const agent = users.find(u => u.id === property?.agente_responsable);
@@ -327,9 +328,9 @@ export function PropertyDetailClient({ id }: { id: string }) {
                 // Server Update
                 const res = await updateProperty(propertyId, updated, token ?? undefined);
                 if (!res.success) {
-                  showToast('Error al guardar: ' + (res.error || ''), 'error');
+                  modal.showError('Error', 'Error al guardar: ' + (res.error || ''));
                 } else {
-                  showToast('Inmueble actualizado correctamente', 'success');
+                  modal.showSuccess('Éxito', 'Inmueble actualizado correctamente');
                 }
               }}
               onCancel={() => setActiveTab('general')}

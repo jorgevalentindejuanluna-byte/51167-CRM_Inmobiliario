@@ -9,6 +9,7 @@ import { findOfficialMunicipalityUrl } from '@/app/actions/web-search';
 import type { Property } from '@/lib/models/types';
 import type { CadastralData, IbiEstimation } from '@/lib/models/catastro_types';
 import { formatCurrency } from '@/lib/constants';
+import { useMessageModal } from '@/lib/message-modal-context';
 
 export default function CadastralAnalysis({ property }: { property: Property }) {
   const { user } = useAuth();
@@ -29,6 +30,7 @@ export default function CadastralAnalysis({ property }: { property: Property }) 
   const [isSearchingUrl, setIsSearchingUrl] = useState(false);
 
   const agencyId = user?.agency_id || 'ag-001';
+  const modal = useMessageModal();
 
   const handleQuery = async () => {
     if (!property.referencia_catastral) {
@@ -307,7 +309,7 @@ export default function CadastralAnalysis({ property }: { property: Property }) 
                   if (res.success && res.url) {
                     window.open(res.url, '_blank');
                   } else {
-                    alert('No se pudo resolver el enlace oficial: ' + res.error);
+                    modal.showError('Error', 'No se pudo resolver el enlace oficial: ' + res.error);
                   }
                   setIsSearchingUrl(false);
                 }}

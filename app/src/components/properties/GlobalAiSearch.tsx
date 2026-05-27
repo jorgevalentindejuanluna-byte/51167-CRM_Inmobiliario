@@ -8,10 +8,12 @@ import { findOfficialMunicipalityUrl } from '@/app/actions/web-search';
 import type { CadastralData, IbiEstimation } from '@/lib/models/catastro_types';
 import { formatCurrency } from '@/lib/constants';
 import { useAuth } from '@/lib/auth-context';
+import { useMessageModal } from '@/lib/message-modal-context';
 
 export default function GlobalAiSearch() {
   const { user } = useAuth();
   const agencyId = user?.agency_id || 'ag-001';
+  const modal = useMessageModal();
 
   const [searchType, setSearchType] = useState<'catastro' | 'direccion'>('catastro');
   const [searchValue, setSearchValue] = useState('');
@@ -201,7 +203,7 @@ export default function GlobalAiSearch() {
                 if (res.success && res.url) {
                   window.open(res.url, '_blank');
                 } else {
-                  alert('No se pudo resolver el enlace oficial: ' + res.error);
+                  modal.showError('Error', 'No se pudo resolver el enlace oficial: ' + res.error);
                 }
                 setIsSearchingUrl(false);
               }}

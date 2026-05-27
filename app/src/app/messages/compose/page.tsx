@@ -5,14 +5,15 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { sendEmail, getEmailAccounts } from '@/app/actions/email';
 import styles from './page.module.css';
+import { useMessageModal } from '@/lib/message-modal-context';
 
 export default function ComposePage() {
   const router = useRouter();
+  const modal = useMessageModal();
   const [to, setTo] = useState('');
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
 
   const handleSend = async () => {
@@ -56,10 +57,9 @@ export default function ComposePage() {
 
     setSending(false);
     if (res.success) {
-      setSent(true);
-      setTimeout(() => router.push('/messages'), 1500);
+      modal.showSuccess('Éxito', 'Mensaje enviado correctamente.');
     } else {
-      setError(res.error || 'Error al enviar. Verifica la configuración SMTP en Configuración > Correo.');
+      modal.showError('Error', res.error || 'Error al enviar. Verifica la configuración SMTP en Configuración > Correo.');
     }
   };
 
@@ -123,12 +123,6 @@ export default function ComposePage() {
         </div>
       </div>
 
-      {sent && (
-        <div className={styles.toast}>
-          <span className="material-symbols-outlined" style={{ color: 'var(--color-secondary)' }}>check_circle</span>
-          Mensaje enviado correctamente
-        </div>
-      )}
     </div>
   );
 }

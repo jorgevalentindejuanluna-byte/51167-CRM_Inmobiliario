@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import '@/styles/globals.css';
 import '@/styles/components.css';
 import { AuthProvider } from '@/lib/auth-context';
+import { MessageModalProvider } from '@/lib/message-modal-context';
 import AppShell from '@/components/layout/AppShell';
 
 export const metadata: Metadata = {
@@ -18,7 +19,9 @@ export default function RootLayout({
     <html lang="es">
       <body>
         <AuthProvider>
-          <AppShell>{children}</AppShell>
+          <MessageModalProvider>
+            <AppShell>{children}</AppShell>
+          </MessageModalProvider>
         </AuthProvider>
       </body>
     </html>

@@ -10,6 +10,7 @@ import {
 } from '@/lib/constants';
 import type { LeadOrigen, LeadTipo, TipoOperacion } from '@/lib/models/types';
 import styles from './page.module.css';
+import { useMessageModal } from '@/lib/message-modal-context';
 
 interface NewLeadForm {
   nombre: string;
@@ -57,6 +58,7 @@ export default function NewLeadPage() {
   const [form, setForm] = useState<NewLeadForm>(INITIAL_FORM);
   const [errors, setErrors] = useState<Partial<Record<keyof NewLeadForm, string>>>({});
   const [saving, setSaving] = useState(false);
+  const modal = useMessageModal();
 
   const updateField = (field: keyof NewLeadForm, value: string | boolean) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -102,7 +104,7 @@ export default function NewLeadPage() {
     await new Promise((resolve) => setTimeout(resolve, 600));
 
     // En producción: INSERT en Supabase con agency_id del usuario actual
-    alert('Lead registrado correctamente (datos mock).\nScore IA calculado: 45');
+    modal.showSuccess('Éxito', 'Lead registrado correctamente (datos mock). Score IA calculado: 45');
 
     setSaving(false);
     router.push('/leads');

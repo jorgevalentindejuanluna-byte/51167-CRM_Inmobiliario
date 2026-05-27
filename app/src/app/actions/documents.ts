@@ -34,6 +34,24 @@ export async function uploadFile(formData: FormData) {
   }
 }
 
+export async function getSignedUrl(path: string, bucket: string = 'documents') {
+  try {
+    const { data, error } = await supabaseServer.storage
+      .from(bucket)
+      .createSignedUrl(path, 3600);
+
+    if (error || !data) {
+      console.error('Error generando signed URL:', error);
+      return { success: false, error: error?.message || 'No se pudo generar la URL firmada' };
+    }
+
+    return { success: true, url: data.signedUrl };
+  } catch (err: any) {
+    console.error('getSignedUrl action failed:', err);
+    return { success: false, error: err.message };
+  }
+}
+
 export async function saveDocument(documentData: any) {
   try {
     const { error, data } = await supabaseServer

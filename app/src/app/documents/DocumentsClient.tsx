@@ -3,8 +3,9 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useDocuments, useLeads, useOperations, useProperties } from '@/lib/use-data';
-import { supabaseUploadFile, supabaseInsert, supabaseUpdate, supabaseGetPublicUrl } from '@/lib/supabase';
-import { uploadFile, saveDocument, updateDocument, deleteDocument } from '@/app/actions/documents';
+import { supabaseUpdate } from '@/lib/supabase';
+import { uploadFile, saveDocument, updateDocument, deleteDocument, getSignedUrl } from '@/app/actions/documents';
+import { useMessageModal } from '@/lib/message-modal-context';
 import DocumentViewer from '@/components/documents/DocumentViewer';
 import { toUUID } from '@/lib/mock-data';
 import type { CRMDocument } from '@/lib/models/types';
@@ -23,6 +24,7 @@ function sanitizeUUID(id: string | undefined): string | undefined {
 export function DocumentsClient() {
   const { token, user } = useAuth();
   const agencyId = user?.agency_id || 'ag-001';
+  const modal = useMessageModal();
   
   // Hooks de datos
   const { data: documents, loading: docsLoading } = useDocuments() as any;
@@ -63,6 +65,8 @@ export function DocumentsClient() {
   const [showOcrModal, setShowOcrModal] = useState(false);
   const [pendingDoc, setPendingDoc] = useState<any>(null);
   const [selectedDocDetails, setSelectedDocDetails] = useState<CRMDocument | null>(null);
+  const [resolvedDocUrl, setResolvedDocUrl] = useState<string | null>(null);
+  const [urlLoading, setUrlLoading] = useState(false);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [showRejectionModal, setShowRejectionModal] = useState(false);
   
@@ -93,15 +97,39 @@ export function DocumentsClient() {
   const [ocrProgress, setOcrProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  // Toasts
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
+  // Mensajes modales centralizados (se usa modal de MessageModalProvider)
 
-  const showToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
-    setToast({ message, type });
-    setTimeout(() => {
-      setToast(null);
-    }, 4000);
-  };
+  // Resolver URL firmada cuando se selecciona un documento
+  useEffect(() => {
+    if (!selectedDocDetails?.url) {
+      setResolvedDocUrl(null);
+      setUrlLoading(false);
+      return;
+    }
+
+    if (selectedDocDetails.url.startsWith('blob:') || selectedDocDetails.url.startsWith('http')) {
+      setResolvedDocUrl(selectedDocDetails.url);
+      setUrlLoading(false);
+      return;
+    }
+
+    const isMockDoc = /^doc-\d+$/.test(selectedDocDetails.id) || !/^[0-9a-f]{8}-/.test(selectedDocDetails.id);
+    if (isMockDoc) {
+      setResolvedDocUrl(null);
+      setUrlLoading(false);
+      return;
+    }
+
+    setUrlLoading(true);
+    getSignedUrl(selectedDocDetails.url).then(res => {
+      if (res.success && res.url) {
+        setResolvedDocUrl(res.url);
+      } else {
+        setResolvedDocUrl(null);
+      }
+      setUrlLoading(false);
+    });
+  }, [selectedDocDetails]);
 
   const [zoomLevel, setZoomLevel] = useState(1);
   const zoomIn = () => setZoomLevel(prev => Math.min(prev + 0.25, 3));
@@ -122,23 +150,27 @@ export function DocumentsClient() {
     if (!doc) return;
     
     if (doc.property_id) {
-      showToast('Este documento está asignado a un inmueble. Elimínelo desde la ficha del inmueble.', 'error');
+      modal.showError('Error', 'Este documento está asignado a un inmueble. Elimínelo desde la ficha del inmueble.');
       return;
     }
 
-    if (!window.confirm('¿Está seguro de eliminar este documento permanentemente?')) return;
-
-    try {
-      const res = await deleteDocument(docId);
-      if (!res.success) throw new Error(res.error);
-      
-      setLocalDocs(prev => prev.filter(d => d.id !== docId));
-      showToast('Documento eliminado con éxito.', 'success');
-      setSelectedDocDetails(null);
-    } catch (err: any) {
-      console.error('Error eliminando:', err);
-      showToast('Hubo un error al eliminar el documento.', 'error');
-    }
+    modal.showConfirm(
+      '¿Está seguro de eliminar este documento permanentemente?',
+      '',
+      async () => {
+        try {
+          const res = await deleteDocument(docId);
+          if (!res.success) throw new Error(res.error);
+          
+          setLocalDocs(prev => prev.filter(d => d.id !== docId));
+          modal.showSuccess('Éxito', 'Documento eliminado con éxito.');
+          setSelectedDocDetails(null);
+        } catch (err: any) {
+          console.error('Error eliminando:', err);
+          modal.showError('Error', 'Hubo un error al eliminar el documento.');
+        }
+      }
+    );
   };
 
   const handleAssignProperty = async (docId: string, propertyId: string) => {
@@ -146,12 +178,12 @@ export function DocumentsClient() {
       const res = await updateDocument(docId, { property_id: propertyId || null });
       if (!res.success) throw new Error(res.error);
       setLocalDocs(prev => prev.map(d => d.id === docId ? { ...d, property_id: propertyId || undefined } : d));
-      showToast('Asignación de inmueble actualizada.', 'success');
+      modal.showSuccess('Éxito', 'Asignación de inmueble actualizada.');
       if (selectedDocDetails && selectedDocDetails.id === docId) {
         setSelectedDocDetails({ ...selectedDocDetails, property_id: propertyId || undefined });
       }
     } catch (err) {
-      showToast('Error asignando documento.', 'error');
+      modal.showError('Error', 'Error asignando documento.');
     }
   };
 
@@ -330,7 +362,7 @@ export function DocumentsClient() {
           return updated;
         });
         setUploading(false);
-        showToast('Documento cargado correctamente.', 'success');
+        modal.showSuccess('Éxito', 'Documento cargado correctamente.');
       }
     } catch (err: any) {
       console.error('Error uploading doc:', err);
@@ -385,7 +417,7 @@ export function DocumentsClient() {
       setShowOcrModal(false);
       setPendingDoc(null);
       setUploading(false);
-      showToast('Documento cargado e indexado mediante OCR correctamente.', 'success');
+      modal.showSuccess('Éxito', 'Documento cargado e indexado mediante OCR correctamente.');
     } catch (dbErr: any) {
       setError(dbErr.message || 'Error al guardar en base de datos.');
       setShowOcrModal(false);
@@ -418,7 +450,7 @@ export function DocumentsClient() {
         }
         return d;
       }));
-      showToast('Documento aprobado correctamente para operaciones legales.', 'success');
+      modal.showSuccess('Éxito', 'Documento aprobado correctamente para operaciones legales.');
     } catch (err) {
       console.error(err);
     }
@@ -466,7 +498,7 @@ export function DocumentsClient() {
 
       setShowRejectionModal(false);
       setRejectionDocId(null);
-      showToast('Documento rechazado. Se ha notificado la incidencia.', 'info');
+      modal.showInfo('Información', 'Documento rechazado. Se ha notificado la incidencia.');
     } catch (err) {
       console.error(err);
     }
@@ -494,7 +526,7 @@ export function DocumentsClient() {
       const msg = newVisibility === 'publico' 
         ? 'Documento visible ahora para el cliente en su portal privado.'
         : 'Documento oculto. Configurado como de acceso interno de la agencia.';
-      showToast(msg, 'info');
+      modal.showInfo('Información', msg);
     } catch (err) {
       console.error(err);
     }
@@ -595,9 +627,9 @@ export function DocumentsClient() {
       });
 
       setShowSignatureModal(false);
-      showToast(`Solicitud de firma enviada a ${signerEmail.trim()}. El firmante recibirá un enlace seguro.`, 'success');
+      modal.showSuccess('Éxito', `Solicitud de firma enviada a ${signerEmail.trim()}. El firmante recibirá un enlace seguro.`);
     } catch (err: any) {
-      showToast(err.message || 'Error al enviar la solicitud de firma', 'error');
+      modal.showError('Error', err.message || 'Error al enviar la solicitud de firma');
     } finally {
       setSendingSignature(false);
     }
@@ -606,40 +638,45 @@ export function DocumentsClient() {
   const handleCancelSignature = async (doc: CRMDocument) => {
     const sig = doc.metadata?.signatures;
     if (!sig?.signature_id) return;
-    if (!confirm('¿Cancelar la solicitud de firma biométrica? El enlace dejará de ser válido.')) return;
 
-    try {
-      const res = await fetch(`/api/signatures/${sig.signature_id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'cancelado' }),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Error al cancelar la firma');
-      }
-
-      setLocalDocs(prev => {
-        const updated = prev.map(d => {
-          if (d.id === doc.id) {
-            const meta = { ...d.metadata };
-            delete meta.signatures;
-            return { ...d, metadata: meta };
+    modal.showConfirm(
+      '¿Cancelar la solicitud de firma biométrica? El enlace dejará de ser válido.',
+      '',
+      async () => {
+        try {
+          const res = await fetch(`/api/signatures/${sig.signature_id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'cancelado' }),
+          });
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Error al cancelar la firma');
           }
-          return d;
-        });
-        localStorage.setItem('local_documents', JSON.stringify(updated));
-        return updated;
-      });
-      showToast('Solicitud de firma cancelada', 'success');
-    } catch (err: any) {
-      showToast(err.message || 'Error al cancelar la firma', 'error');
-    }
+
+          setLocalDocs(prev => {
+            const updated = prev.map(d => {
+              if (d.id === doc.id) {
+                const meta = { ...d.metadata };
+                delete meta.signatures;
+                return { ...d, metadata: meta };
+              }
+              return d;
+            });
+            localStorage.setItem('local_documents', JSON.stringify(updated));
+            return updated;
+          });
+          modal.showSuccess('Éxito', 'Solicitud de firma cancelada');
+        } catch (err: any) {
+          modal.showError('Error', err.message || 'Error al cancelar la firma');
+        }
+      }
+    );
   };
 
   // Simulación de AutoFirma / Firma Digital
   const handleRequestSignature = (doc: CRMDocument) => {
-    showToast(`Invocando AutoFirma para el archivo ${doc.name}...`, 'info');
+    modal.showInfo('Información', `Invocando AutoFirma para el archivo ${doc.name}...`);
     
     // Simular proceso de firma digital
     setTimeout(() => {
@@ -666,21 +703,21 @@ export function DocumentsClient() {
         return d;
       }));
 
-      showToast(`Documento firmado digitalmente mediante certificado y validado en la sede electrónica.`, 'success');
+      modal.showSuccess('Éxito', `Documento firmado digitalmente mediante certificado y validado en la sede electrónica.`);
     }, 2500);
   };
 
   // Simulación de la solicitud de documentación
   const handleGenerateRequest = () => {
     if (!requestLeadId && !requestOperationId) {
-      showToast('Por favor, selecciona un lead o una operación.', 'error');
+      modal.showError('Error', 'Por favor, selecciona un lead o una operación.');
       return;
     }
 
     const hash = Math.random().toString(36).substring(2, 10);
     const link = `https://crm.realtopstate.com/portal/upload?req=${hash}`;
     setGeneratedRequestUrl(link);
-    showToast('Enlace de solicitud generado correctamente.', 'success');
+    modal.showSuccess('Éxito', 'Enlace de solicitud generado correctamente.');
   };
 
   const handleSimulateSend = (channel: 'whatsapp' | 'email') => {
@@ -690,7 +727,7 @@ export function DocumentsClient() {
     const leadName = lead ? `${lead.nombre} ${lead.apellidos}` : 'Cliente';
     const channelName = channel === 'whatsapp' ? 'WhatsApp' : 'Correo electrónico';
 
-    showToast(`Enviando enlace seguro por ${channelName} a ${leadName}...`, 'info');
+    modal.showInfo('Información', `Enviando enlace seguro por ${channelName} a ${leadName}...`);
 
     setTimeout(() => {
       // Registrar un documento vacío en estado "pendiente" para simular el requerimiento en la lista
@@ -720,22 +757,12 @@ export function DocumentsClient() {
       setRequestLeadId('');
       setRequestOperationId('');
       setRequestNotes('');
-      showToast(`Solicitud de documentación enviada. Los expedientes se han registrado como "Pendientes".`, 'success');
+      modal.showSuccess('Éxito', `Solicitud de documentación enviada. Los expedientes se han registrado como "Pendientes".`);
     }, 1500);
   };
 
   return (
     <div className={styles.container}>
-      {/* Toast Notificaciones */}
-      {toast && (
-        <div className={`${styles.toast} ${styles[toast.type]}`}>
-          <span className="material-symbols-outlined">
-            {toast.type === 'success' ? 'check_circle' : toast.type === 'error' ? 'error' : 'info'}
-          </span>
-          <span>{toast.message}</span>
-        </div>
-      )}
-
       {/* Cabecera */}
       <div className={styles.header}>
         <div>
@@ -1273,12 +1300,24 @@ export function DocumentsClient() {
                   </h4>
                 </div>
                 {selectedDocDetails.url ? (
-                  <DocumentViewer
-                    url={selectedDocDetails.url.startsWith('blob:') || selectedDocDetails.url.startsWith('http') ? selectedDocDetails.url : supabaseGetPublicUrl('documents', selectedDocDetails.url)}
-                    fileName={selectedDocDetails.name}
-                    fileType={selectedDocDetails.type}
-                    metadata={selectedDocDetails.metadata}
-                  />
+                  urlLoading ? (
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '500px', flexDirection: 'column', color: 'var(--color-outline)' }}>
+                      <div className="spinner" />
+                      <p style={{ textAlign: 'center', maxWidth: '250px', marginTop: '1rem' }}>Cargando documento...</p>
+                    </div>
+                  ) : resolvedDocUrl ? (
+                    <DocumentViewer
+                      url={resolvedDocUrl}
+                      fileName={selectedDocDetails.name}
+                      fileType={selectedDocDetails.type}
+                      metadata={selectedDocDetails.metadata}
+                    />
+                  ) : (
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '500px', flexDirection: 'column', color: 'var(--color-outline)' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '48px', marginBottom: '1rem', opacity: 0.5 }}>visibility_off</span>
+                      <p style={{ textAlign: 'center', maxWidth: '250px' }}>Vista previa no disponible. El archivo no se encuentra en el almacenamiento.</p>
+                    </div>
+                  )
                 ) : (
                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '500px', flexDirection: 'column', color: 'var(--color-outline)' }}>
                     <span className="material-symbols-outlined" style={{ fontSize: '48px', marginBottom: '1rem', opacity: 0.5 }}>visibility_off</span>
@@ -1652,7 +1691,7 @@ export function DocumentsClient() {
                     />
                     <button className="btn btn--secondary" onClick={() => {
                       navigator.clipboard.writeText(generatedRequestUrl);
-                      showToast('Enlace copiado al portapapeles.', 'info');
+                      modal.showInfo('Información', 'Enlace copiado al portapapeles.');
                     }}>
                       <span className="material-symbols-outlined">content_copy</span>
                     </button>

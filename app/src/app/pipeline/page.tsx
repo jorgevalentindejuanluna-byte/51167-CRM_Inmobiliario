@@ -8,7 +8,7 @@ import SignatureManager from '@/components/signatures/SignatureManager';
 import { useAuth } from '@/lib/auth-context';
 import { supabaseUpdate, supabaseInsert } from '@/lib/supabase';
 import { toUUID } from '@/lib/mock-data';
-import { showToast } from '@/lib/toast';
+import { useMessageModal } from '@/lib/message-modal-context';
 import styles from './page.module.css';
 
 // Columnas del tablero Kanban
@@ -46,6 +46,7 @@ export default function PipelinePage() {
   const { data: leads } = useLeads();
   const { data: users } = useUsers();
   const { user, token } = useAuth();
+  const modal = useMessageModal();
 
   // Estados locales para interactividad
   const [ops, setOps] = useState<any[]>([]);
@@ -130,7 +131,7 @@ export default function PipelinePage() {
     } catch (err) {
       console.error('[Pipeline] Error al actualizar estado en la base de datos:', err);
       setOps(oldOps);
-      showToast('Error de red: No se pudo guardar la nueva fase de la operación en el servidor.', 'error');
+      modal.showError('Error', 'Error de red: No se pudo guardar la nueva fase de la operación en el servidor.');
     }
   };
 
@@ -165,10 +166,10 @@ export default function PipelinePage() {
           estado: editedStage,
         }, token);
       }
-      showToast('Detalles guardados exitosamente.', 'success');
+      modal.showSuccess('Éxito', 'Detalles guardados exitosamente.');
     } catch (err) {
       console.error('[Pipeline] Error al guardar cambios en base de datos:', err);
-      showToast('Error al sincronizar los detalles con el servidor.', 'error');
+      modal.showError('Error', 'Error al sincronizar los detalles con el servidor.');
     } finally {
       setSavingDetails(false);
     }
@@ -178,7 +179,7 @@ export default function PipelinePage() {
   const handleCreateOperation = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newOpProperty || !newOpClient || !newOpAgent) {
-      showToast('Por favor, selecciona un inmueble, un cliente y un agente responsable.', 'warning');
+      modal.showWarning('Aviso', 'Por favor, selecciona un inmueble, un cliente y un agente responsable.');
       return;
     }
 
@@ -232,10 +233,10 @@ export default function PipelinePage() {
       setNewOpAgent('');
       setNewOpPrice(0);
       setNewOpNotes('');
-      showToast('Nueva operación creada.', 'success');
+      modal.showSuccess('Éxito', 'Nueva operación creada.');
     } catch (err) {
       console.error('[Pipeline] Error al registrar nueva operación:', err);
-      showToast('Error al dar de alta la operación.', 'error');
+      modal.showError('Error', 'Error al dar de alta la operación.');
     } finally {
       setCreatingOp(false);
     }

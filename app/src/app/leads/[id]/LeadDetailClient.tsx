@@ -6,7 +6,7 @@ import { useLeads, useUsers, useProperties, saveLocalMock } from '@/lib/use-data
 import { useAuth } from '@/lib/auth-context';
 import LeadDocumentChecklist from '@/components/leads/LeadDocumentChecklist';
 import { updateLead } from '@/app/actions/leads';
-import { showToast } from '@/lib/toast';
+import { useMessageModal } from '@/lib/message-modal-context';
 import {
   LEAD_ESTADO_LABELS,
   LEAD_ESTADO_COLORS,
@@ -26,6 +26,7 @@ export function LeadDetailClient({ id }: { id: string }) {
 
   const [isEditing, setIsEditing] = useState(false);
   const [editedLead, setEditedLead] = useState<any>(null);
+  const modal = useMessageModal();
 
   const lead = leads.find((l) => l.id === id);
 
@@ -62,9 +63,9 @@ export function LeadDetailClient({ id }: { id: string }) {
     // Call server action for persistence
     const res = await updateLead(lead.id, editedLead, token ?? undefined);
     if (!res.success) {
-      showToast('Error al guardar los cambios: ' + (res.error || ''), 'error');
+      modal.showError('Error', 'Error al guardar los cambios: ' + (res.error || ''));
     } else {
-      showToast('Cambios guardados correctamente', 'success');
+      modal.showSuccess('Éxito', 'Cambios guardados correctamente');
     }
   };
 

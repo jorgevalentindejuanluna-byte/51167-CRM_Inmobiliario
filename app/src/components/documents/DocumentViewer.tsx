@@ -12,6 +12,7 @@ interface DocumentViewerProps {
 export default function DocumentViewer({ url, fileName, fileType, metadata }: DocumentViewerProps) {
   const [zoom, setZoom] = useState(1);
   const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const ext = fileName.split('.').pop()?.toLowerCase() || '';
@@ -21,6 +22,7 @@ export default function DocumentViewer({ url, fileName, fileType, metadata }: Do
   useEffect(() => {
     setZoom(1);
     setLoaded(false);
+    setLoadError(false);
   }, [url]);
 
   const handleDownload = () => {
@@ -63,11 +65,23 @@ export default function DocumentViewer({ url, fileName, fileType, metadata }: Do
             <div className="spinner" />
           </div>
         )}
-        {isPdf ? (
+        {loadError ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '1rem', padding: '2rem', minHeight: 500 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 48, color: 'var(--color-error)' }}>error_outline</span>
+            <p style={{ color: 'var(--color-on-surface-variant)', textAlign: 'center' }}>
+              No se ha podido cargar el archivo desde el almacenamiento.
+            </p>
+            <button className="btn btn--primary" onClick={handleDownload}>
+              <span className="material-symbols-outlined">download</span>
+              Descargar {fileName}
+            </button>
+          </div>
+        ) : isPdf ? (
           <iframe
             ref={iframeRef}
             src={url}
             onLoad={() => setLoaded(true)}
+            onError={() => setLoadError(true)}
             style={{
               width: '100%', height: '100%', border: 'none', minHeight: 500,
               transform: `scale(${zoom})`, transformOrigin: 'top left',
@@ -79,6 +93,7 @@ export default function DocumentViewer({ url, fileName, fileType, metadata }: Do
             src={url}
             alt={fileName}
             onLoad={() => setLoaded(true)}
+            onError={() => setLoadError(true)}
             style={{
               maxWidth: '100%', maxHeight: '100%', display: 'block', margin: '0 auto',
               transform: `scale(${zoom})`, transformOrigin: 'top center',

@@ -97,13 +97,16 @@ export function DocumentsClient() {
 
   // Mensajes modales centralizados (se usa modal de MessageModalProvider)
 
+  const resolveDocUrl = async (doc: CRMDocument): Promise<string> => {
+    if (!doc.url) return '';
+    if (doc.url.startsWith('http://') || doc.url.startsWith('https://')) return doc.url;
+    const res = await getSignedUrlIfExists(doc.url, 'documents');
+    return res?.url || doc.url;
+  };
+
   const handleOpenPdfViewer = async (doc: CRMDocument) => {
-    if (!doc.url) return;
-    let viewerUrl = doc.url;
-    if (viewerUrl.startsWith('ag-') || viewerUrl.startsWith('documents/')) {
-      const res = await getSignedUrlIfExists(viewerUrl, 'documents');
-      if (res?.url) viewerUrl = res.url;
-    }
+    const viewerUrl = await resolveDocUrl(doc);
+    if (!viewerUrl) return;
     viewer.openViewer({
       url: viewerUrl,
       fileName: doc.name,
@@ -112,10 +115,11 @@ export function DocumentsClient() {
     });
   };
 
-  const handleDownloadDoc = (doc: CRMDocument) => {
-    if (!doc.url) return;
+  const handleDownloadDoc = async (doc: CRMDocument) => {
+    const url = await resolveDocUrl(doc);
+    if (!url) return;
     const a = document.createElement('a');
-    a.href = doc.url;
+    a.href = url;
     a.download = doc.name;
     a.click();
   };

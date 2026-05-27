@@ -17,11 +17,19 @@ export async function POST(request: NextRequest) {
     }
 
     let config = smtp_config;
-    if (!config) {
+    if (!config || (config && !config.pass)) {
       const dbConfig = await getAgencySmtpConfig('ag-001');
       if (dbConfig) {
-        config = dbConfig;
-      } else {
+        if (!config) {
+          config = dbConfig;
+        } else {
+          // Mantener los datos del formulario, pero rellenar el password si falta
+          config.pass = dbConfig.pass;
+          // Si el usuario borró el user/host pero dejó pass vacío, mejor usar todo de BD
+          if (!config.host) config.host = dbConfig.host;
+          if (!config.user) config.user = dbConfig.user;
+        }
+      } else if (!config) {
         console.warn('[Email API] No SMTP config found in DB for agency ag-001');
       }
     }

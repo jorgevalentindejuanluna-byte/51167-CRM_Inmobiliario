@@ -36,12 +36,11 @@ export function DocumentsClient() {
   // Estado local para documentos cargados y modificados dinámicamente
   const [localDocs, setLocalDocs] = useState<CRMDocument[]>([]);
 
-  // Cargar documentos guardados localmente al montar
+  // Limpiar datos locales previos (puesta a cero del módulo)
   useEffect(() => {
-    const stored = localStorage.getItem('local_documents');
-    if (stored) {
-      try { setLocalDocs(JSON.parse(stored)); } catch {}
-    }
+    localStorage.removeItem('local_documents');
+    localStorage.removeItem('crm_mock_documents');
+    setLocalDocs([]);
   }, []);
 
   // Sincronizar el estado local con los datos cargados (sin perder docs locales)
@@ -66,8 +65,6 @@ export function DocumentsClient() {
   const [showOcrModal, setShowOcrModal] = useState(false);
   const [pendingDoc, setPendingDoc] = useState<any>(null);
   const [selectedDocDetails, setSelectedDocDetails] = useState<CRMDocument | null>(null);
-  const [resolvedDocUrl, setResolvedDocUrl] = useState<string | null>(null);
-  const [urlLoading, setUrlLoading] = useState(false);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [showRejectionModal, setShowRejectionModal] = useState(false);
   
@@ -100,31 +97,6 @@ export function DocumentsClient() {
 
   // Mensajes modales centralizados (se usa modal de MessageModalProvider)
 
-  // Resolver URL firmada cuando se selecciona un documento
-  useEffect(() => {
-    if (!selectedDocDetails?.url) {
-      setResolvedDocUrl(null);
-      setUrlLoading(false);
-      return;
-    }
-
-    if (selectedDocDetails.url.startsWith('blob:') || selectedDocDetails.url.startsWith('http')) {
-      setResolvedDocUrl(selectedDocDetails.url);
-      setUrlLoading(false);
-      return;
-    }
-
-    setUrlLoading(true);
-    getSignedUrlIfExists(selectedDocDetails.url).then(res => {
-      if (res.success && res.url) {
-        setResolvedDocUrl(res.url);
-      } else {
-        setResolvedDocUrl(null);
-      }
-      setUrlLoading(false);
-    });
-  }, [selectedDocDetails]);
-
   const handleOpenPdfViewer = async (doc: CRMDocument) => {
     if (!doc.url) return;
     let viewerUrl = doc.url;
@@ -140,11 +112,6 @@ export function DocumentsClient() {
       metadata: doc.metadata,
     });
   };
-
-  const [zoomLevel, setZoomLevel] = useState(1);
-  const zoomIn = () => setZoomLevel(prev => Math.min(prev + 0.25, 3));
-  const zoomOut = () => setZoomLevel(prev => Math.max(prev - 0.25, 0.5));
-  const zoomReset = () => setZoomLevel(1);
 
   // Persistir localDocs en localStorage cada vez que cambie
   const prevDocsRef = useRef<CRMDocument[]>([]);

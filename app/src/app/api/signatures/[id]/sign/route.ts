@@ -202,25 +202,28 @@ export async function POST(
     }
 
     // Update signature record
+    const updatePayload: Record<string, any> = {
+      status: 'firmado',
+      signer_id: signer_id || sig.signer_id,
+      biometric_data: { strokes: strokes.slice(0, 100), analysis: biometricAnalysis },
+      signature_image_url: signatureImageUrl,
+      signed_document_url: signedDocUrl,
+      hash_firmado: `sha256:${hashFirmado}`,
+      ip_address: ipAddress,
+      browser_info: browserInfo,
+      location_data: {},
+      signed_at: signedAt,
+    };
+    const emailVal = signer_email || sig.signer_email;
+    if (emailVal) updatePayload.signer_email = emailVal;
+
     const { error: updateError } = await (supabase.from('signatures') as any)
-      .update({
-        status: 'firmado',
-        signer_id: signer_id || sig.signer_id,
-        signer_email: signer_email || undefined,
-        biometric_data: { strokes: strokes.slice(0, 100), analysis: biometricAnalysis },
-        signature_image_url: signatureImageUrl,
-        signed_document_url: signedDocUrl,
-        hash_firmado: `sha256:${hashFirmado}`,
-        ip_address: ipAddress,
-        browser_info: browserInfo,
-        location_data: {},
-        signed_at: signedAt,
-      })
+      .update(updatePayload)
       .eq('id', id);
 
     if (updateError) {
-      console.error('[Signature API] Error updating signature:', updateError);
-      return NextResponse.json({ error: 'Failed to save signature' }, { status: 500 });
+      console.error('[Signature API] Error updating signature:', JSON.stringify(updateError));
+      return NextResponse.json({ error: updateError?.message || updateError?.toString() || 'Failed to save signature' }, { status: 500 });
     }
 
     // Update document record in CRM

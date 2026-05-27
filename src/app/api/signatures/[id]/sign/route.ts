@@ -263,16 +263,76 @@ export async function POST(
     if (emailVal && signedPdfBytesFinal) {
       try {
         const { sendEmailViaSmtp } = await import('@/lib/email-service');
-        const fileName = (docRecord?.name || 'Documento_Firmado').replace(/[^a-zA-Z0-9_\-\.]/g, '_') + '.pdf';
+        const fileName = (docRecord?.name || 'Documento_Firmado').replace(/[^a-zA-Z0-9_\-\.]/g, '_');
+        
+        let subjectName = sig.signer_name || 'Firmante';
+        if (docRecord?.lead_id) {
+          const { data: leadData } = await supabase.from('leads').select('first_name, last_name, name').eq('id', docRecord.lead_id).single();
+          if (leadData) {
+            const firstName = leadData.first_name || leadData.name || '';
+            const lastName = leadData.last_name || '';
+            const fullName = `${firstName} ${lastName}`.trim();
+            if (fullName) subjectName = fullName;
+          }
+        }
+
+        const subject = `${subjectName} - Gracias por su firma del documento: ${docRecord?.name || 'Documento'}`;
+        const bodyText = `Estimado/a ${subjectName},\n\nGracias por firmar el documento.\n\nAdjuntamos una copia de su documento firmado electrónicamente, así como la hoja de confirmación de validez jurídica de los datos de la firma.\n\nUn cordial saludo.`;
+
+        // Generar Hoja de Confirmación (Certificado)
+        const { PDFDocument, rgb, StandardFonts } = await import('pdf-lib');
+        const certPdf = await PDFDocument.create();
+        const certPage = certPdf.addPage([595.28, 841.89]);
+        const fBold = await certPdf.embedFont(StandardFonts.HelveticaBold);
+        const fNormal = await certPdf.embedFont(StandardFonts.Helvetica);
+        
+        let y = 780;
+        const drawText = (text: string, font: any, size: number, color = rgb(0,0,0)) => {
+          certPage.drawText(text, { x: 50, y, size, font, color });
+          y -= (size + 8);
+        };
+
+        drawText('HOJA DE CONFIRMACIÓN DE VALIDEZ JURÍDICA', fBold, 16);
+        y -= 10;
+        drawText('Identificación del Firmante:', fBold, 12);
+        drawText(`Nombre: ${sig.signer_name || subjectName}`, fNormal, 10);
+        drawText(`Email de contacto: ${emailVal}`, fNormal, 10);
+        drawText(`IP: ${sig.ip_address || 'No registrada'}`, fNormal, 10);
+        drawText(`User Agent: ${sig.user_agent || 'No registrado'}`, fNormal, 10);
+        y -= 10;
+        drawText('Datos del Documento:', fBold, 12);
+        drawText(`Documento: ${docRecord?.name || 'Documento'}`, fNormal, 10);
+        drawText(`Fecha de Firma: ${new Date(signedAt).toLocaleString('es-ES')}`, fNormal, 10);
+        drawText(`Hash Original (SHA-256):`, fNormal, 10);
+        drawText(sig.hash_documento || 'N/A', fNormal, 8, rgb(0.3, 0.3, 0.3));
+        drawText(`Hash Firmado (SHA-256):`, fNormal, 10);
+        drawText(hashFirmado, fNormal, 8, rgb(0.3, 0.3, 0.3));
+        y -= 10;
+        drawText('Datos Biométricos Capturados:', fBold, 12);
+        drawText(`Trazos (Strokes): ${biometricAnalysis.strokesCount}`, fNormal, 10);
+        drawText(`Duración de firma: ${biometricAnalysis.durationMs} ms`, fNormal, 10);
+        drawText(`Velocidad Media: ${biometricAnalysis.averageSpeed.toFixed(2)} px/ms`, fNormal, 10);
+        drawText(`Presión Media: ${(biometricAnalysis.averagePressure * 100).toFixed(0)}%`, fNormal, 10);
+        drawText(`Dispositivo Captura: ${biometricAnalysis.device}`, fNormal, 10);
+
+        const certBytes = await certPdf.save();
+
         await sendEmailViaSmtp({
-          to: [{ name: sig.signer_name || 'Firmante', email: emailVal }],
-          subject: `Copia de su documento firmado: ${docRecord?.name || 'Documento'}`,
-          bodyText: `Estimado/a ${sig.signer_name || 'Firmante'},\n\nAdjuntamos la copia de su documento firmado electrónicamente con total validez legal, junto con su certificado biométrico incrustado en la parte inferior.\n\nGracias por su confianza.`,
-          attachments: [{
-             filename: fileName,
-             content: Buffer.from(signedPdfBytesFinal),
-             contentType: 'application/pdf'
-          }]
+          to: [{ name: subjectName, email: emailVal }],
+          subject,
+          bodyText,
+          attachments: [
+            {
+               filename: `${fileName}.pdf`,
+               content: Buffer.from(signedPdfBytesFinal),
+               contentType: 'application/pdf'
+            },
+            {
+               filename: `Confirmacion_Validez_${fileName}.pdf`,
+               content: Buffer.from(certBytes),
+               contentType: 'application/pdf'
+            }
+          ]
         });
       } catch (mailErr) {
         console.warn('[Signature API] Error enviando email de confirmación:', mailErr);

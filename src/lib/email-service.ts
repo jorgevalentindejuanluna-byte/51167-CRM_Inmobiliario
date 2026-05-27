@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { emailLogger } from './email-logger';
 
 interface SmtpConfig {
   host: string;
@@ -39,7 +40,7 @@ const DEFAULT_FROM_NAME = 'Real Top State CRM';
 const DEFAULT_FROM_EMAIL = 'noreply@real-top-state.com';
 
 function parseSmtpConfig(config: SmtpConfig): SmtpConfig {
-  return {
+  const finalConfig = {
     host: config.host || process.env.SMTP_HOST || '',
     port: config.port || Number(process.env.SMTP_PORT) || 587,
     user: config.user || process.env.SMTP_USER || '',
@@ -47,23 +48,35 @@ function parseSmtpConfig(config: SmtpConfig): SmtpConfig {
     fromName: config.fromName || process.env.SMTP_FROM_NAME || DEFAULT_FROM_NAME,
     fromEmail: config.fromEmail || process.env.SMTP_FROM_EMAIL || DEFAULT_FROM_EMAIL,
   };
+  
+  emailLogger.info('parseSmtpConfig', 'Parsed SMTP configuration (password masked)', {
+    host: finalConfig.host,
+    port: finalConfig.port,
+    user: finalConfig.user ? '***' : '(empty)',
+    from: `${finalConfig.fromName} <${finalConfig.fromEmail}>`
+  });
+  
+  return finalConfig;
 }
 
 function createTransport(config: SmtpConfig) {
   const cfg = parseSmtpConfig(config);
 
   if (!cfg.host || !cfg.user || !cfg.pass) {
-    throw new Error(
-      'SMTP not configured. Set SMTP_HOST, SMTP_USER, SMTP_PASS env vars ' +
-      'or configure an email account in Settings > Email.'
-    );
+    const errorMsg = 'SMTP not configured. Set SMTP_HOST, SMTP_USER, SMTP_PASS env vars or configure an email account in Settings > Email.';
+    emailLogger.error('createTransport', 'Missing SMTP credentials', new Error(errorMsg));
+    throw new Error(errorMsg);
   }
+
+  emailLogger.info('createTransport', `Creating Nodemailer transport for ${cfg.host}:${cfg.port}`);
 
   return nodemailer.createTransport({
     host: cfg.host,
     port: cfg.port,
     secure: cfg.port === 465,
     auth: { user: cfg.user, pass: cfg.pass },
+    logger: true, // Enable built-in nodemailer logger
+    debug: true   // Enable nodemailer debug output
   });
 }
 
@@ -75,6 +88,13 @@ export async function sendEmailViaSmtp(
   input: SendEmailInput,
   smtpConfig?: SmtpConfig
 ): Promise<SendEmailResult> {
+  const targetId = `MSG-${Date.now()}`;
+  emailLogger.info(`sendEmailViaSmtp:${targetId}`, 'Initializing email send request', {
+    to: input.to,
+    subject: input.subject,
+    attachments: input.attachments?.length || 0
+  });
+
   try {
     const config = smtpConfig
       ? parseSmtpConfig(smtpConfig)
@@ -93,14 +113,22 @@ export async function sendEmailViaSmtp(
       attachments: input.attachments,
     };
 
+    emailLogger.info(`sendEmailViaSmtp:${targetId}`, 'Sending mail via transport...');
     const info = await transport.sendMail(mailOptions);
+    
+    emailLogger.info(`sendEmailViaSmtp:${targetId}`, 'Email sent successfully!', {
+      messageId: info.messageId,
+      response: info.response,
+      accepted: info.accepted,
+      rejected: info.rejected
+    });
 
     return {
       success: true,
       messageId: info.messageId,
     };
   } catch (err: any) {
-    console.error('[EmailService] SMTP send error:', err);
+    emailLogger.error(`sendEmailViaSmtp:${targetId}`, 'SMTP send error occurred', err);
     return {
       success: false,
       error: err.message || 'Unknown SMTP error',

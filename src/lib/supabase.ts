@@ -224,6 +224,30 @@ export async function supabaseGetUser(token: string) {
   }
 }
 
+/** Actualizar usuario actual (metadata) */
+export async function supabaseUpdateUser(token: string, metadata: any) {
+  const url = `${SUPABASE_URL}/auth/v1/user`;
+  try {
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ data: metadata }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error_description || data.msg || 'Error al actualizar usuario');
+    return data;
+  } catch (error) {
+    console.error('[SupabaseAuth] Update error:', error);
+    throw error;
+  }
+}
+
+
 /** Cerrar sesión */
 export async function supabaseAuthSignOut(token: string) {
   const url = `${SUPABASE_URL}/auth/v1/logout`;

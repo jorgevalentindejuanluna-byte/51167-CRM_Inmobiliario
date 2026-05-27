@@ -26,3 +26,14 @@ export async function sendLoginOtp(email: string, name: string = 'Usuario') {
     return { success: false, error: 'No se pudo enviar el código de acceso al email.' };
   }
 }
+
+export async function toggleMfa(enabled: boolean, token: string) {
+  try {
+    const { supabaseUpdateUser } = await import('@/lib/supabase');
+    const result = await supabaseUpdateUser(token, { mfa_enabled: enabled });
+    return { success: true, data: result };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Error al actualizar configuración de seguridad' };
+  }
+}
+

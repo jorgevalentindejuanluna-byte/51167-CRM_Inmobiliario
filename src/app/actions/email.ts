@@ -28,7 +28,7 @@ export async function getEmailAccounts(token?: string): Promise<{ success: boole
 }
 
 export async function saveEmailAccount(
-  data: Partial<EmailAccount> & { email: string; display_name: string; smtp_host: string; smtp_port: number; smtp_user: string; smtp_pass: string },
+  data: Partial<EmailAccount> & { email: string; display_name: string; smtp_host: string; smtp_port: number; smtp_user: string; smtp_pass: string; imap_host?: string; imap_port?: number; imap_user?: string; imap_pass?: string; imap_encryption?: string },
   token?: string
 ): Promise<{ success: boolean; error?: string; data?: EmailAccount }> {
   try {
@@ -41,6 +41,11 @@ export async function saveEmailAccount(
       smtp_user: data.smtp_user,
       smtp_pass: data.smtp_pass,
       smtp_encryption: data.smtp_encryption || 'starttls',
+      imap_host: data.imap_host,
+      imap_port: data.imap_port,
+      imap_user: data.imap_user,
+      imap_pass: data.imap_pass,
+      imap_encryption: data.imap_encryption || 'ssl',
       provider: data.provider || 'other',
       sync_enabled: true,
     };
@@ -61,6 +66,11 @@ export async function saveEmailAccount(
             smtp_user: data.smtp_user,
             smtp_pass: data.smtp_pass,
             smtp_encryption: data.smtp_encryption || 'starttls',
+            imap_host: data.imap_host,
+            imap_port: data.imap_port,
+            imap_user: data.imap_user,
+            imap_pass: data.imap_pass,
+            imap_encryption: data.imap_encryption || 'ssl',
             provider: data.provider || 'other',
             sync_enabled: true,
           } as any, token);

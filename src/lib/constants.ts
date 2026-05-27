@@ -26,7 +26,8 @@ export const NAV_BOTTOM_ITEMS = [
     path: '/settings',
     children: [
       { key: 'settings-messaging', label: 'Centro de Mensajería', icon: 'chat', path: '/settings/messaging' },
-      { key: 'settings-email', label: 'Correo SMTP', icon: 'mail', path: '/settings/email' },
+      { key: 'settings-email', label: 'Cuentas de Correo', icon: 'mail', path: '/settings/email' },
+      { key: 'settings-security', label: 'Seguridad', icon: 'security', path: '/settings/security' },
     ],
   },
   { key: 'support', label: 'Soporte', icon: 'help', path: '/support' },

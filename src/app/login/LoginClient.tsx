@@ -49,15 +49,26 @@ export default function LoginClient() {
       const data = await supabaseAuthSignIn(email, password);
       
       if (data && data.access_token) {
-        // Enviar OTP
-        const res = await sendLoginOtp(email, data.user?.user_metadata?.name || email.split('@')[0]);
-        if (res.success && res.hash) {
-          setTempToken(data.access_token);
-          setHashedOtp(res.hash);
-          setUserName(data.user?.user_metadata?.name || email.split('@')[0]);
-          setStep('otp');
+        const userName = data.user?.user_metadata?.name || email.split('@')[0];
+        const isMfaEnabled = data.user?.user_metadata?.mfa_enabled === true;
+
+        if (isMfaEnabled) {
+          // Enviar OTP
+          const res = await sendLoginOtp(email, userName);
+          if (res.success && res.hash) {
+            setTempToken(data.access_token);
+            setHashedOtp(res.hash);
+            setUserName(userName);
+            setStep('otp');
+          } else {
+            throw new Error(res.error || 'Error al enviar código OTP');
+          }
         } else {
-          throw new Error(res.error || 'Error al enviar código OTP');
+          // MFA desactivado: login directo
+          localStorage.setItem('rts_access_token', data.access_token);
+          setUserName(userName);
+          await refreshUser();
+          setStep('success');
         }
       } else {
         throw new Error('Credenciales incorrectas');

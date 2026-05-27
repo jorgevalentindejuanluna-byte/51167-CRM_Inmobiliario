@@ -478,6 +478,7 @@ export function DocumentsClient() {
           document_name: signatureDoc.name,
           signer_name: signerName.trim(),
           signer_email: signerEmail.trim(),
+          signed_url_expiry_years: Number(localStorage.getItem('signed_url_expiry_years')) || 5,
         }),
       });
 

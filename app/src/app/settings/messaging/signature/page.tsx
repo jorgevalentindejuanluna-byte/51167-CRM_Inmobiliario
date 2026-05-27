@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import styles from './page.module.css';
 
@@ -23,8 +23,15 @@ export default function SignatureSettingsPage() {
     </div>`
   );
   const [saved, setSaved] = useState(false);
+  const [expiryYears, setExpiryYears] = useState(5);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('signed_url_expiry_years');
+    if (saved) setExpiryYears(Number(saved));
+  }, []);
 
   const handleSave = () => {
+    localStorage.setItem('signed_url_expiry_years', String(expiryYears));
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
@@ -60,6 +67,21 @@ export default function SignatureSettingsPage() {
         <div className={styles.preview}>
           <h4 className={styles.previewLabel}>Vista previa:</h4>
           <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
+        </div>
+
+        <hr style={{ border: 'none', borderTop: '1px solid var(--color-outline-variant)', margin: '1rem 0' }} />
+
+        <div className={styles.field}>
+          <label className={styles.fieldLabel}>Duración URLs firmadas (años)</label>
+          <p className={styles.fieldDesc}>Tiempo durante el cual el enlace de descarga del documento firmado será válido</p>
+          <input
+            className={styles.input}
+            type="number"
+            min={1}
+            max={99}
+            value={expiryYears}
+            onChange={e => setExpiryYears(Math.max(1, Number(e.target.value)))}
+          />
         </div>
 
         {saved && (

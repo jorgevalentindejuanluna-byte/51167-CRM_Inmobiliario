@@ -35,7 +35,7 @@ export async function POST(
 
     const { data: existing, error: fetchError } = await (supabase
       .from('signatures') as any)
-      .select('id, status, signer_name, signer_id, hash_documento, document_id')
+      .select('id, status, signer_name, signer_id, hash_documento, document_id, signed_url_expiry_years')
       .eq('id', id)
       .single();
 
@@ -47,6 +47,9 @@ export async function POST(
     if (sig.status !== 'borrador' && sig.status !== 'enviado') {
       return NextResponse.json({ error: 'Signature already completed or expired' }, { status: 410 });
     }
+
+    const urlExpiryYears = Math.max(1, Math.min(99, Number(sig.signed_url_expiry_years) || 5));
+    const urlExpirySeconds = urlExpiryYears * 365 * 24 * 60 * 60;
 
     // Analysis
     const biometricAnalysis = analyzeBiometricData(strokes);
@@ -70,7 +73,7 @@ export async function POST(
           .from('documents')
           .upload(imagePath, buffer, { contentType: 'image/png', upsert: true });
         if (!uploadError) {
-          const { data: signed } = await supabase.storage.from('documents').createSignedUrl(imagePath, 60 * 60 * 24 * 365);
+          const { data: signed } = await supabase.storage.from('documents').createSignedUrl(imagePath, urlExpirySeconds);
           if (signed) signatureImageUrl = signed.signedUrl;
         }
       } catch (e) {
@@ -163,7 +166,7 @@ export async function POST(
           .from('documents')
           .upload(signedPath, Buffer.from(signedPdfBytes), { contentType: 'application/pdf', upsert: true });
         if (!signedUploadError) {
-          const { data: signed } = await supabase.storage.from('documents').createSignedUrl(signedPath, 60 * 60 * 24 * 365);
+          const { data: signed } = await supabase.storage.from('documents').createSignedUrl(signedPath, urlExpirySeconds);
           if (signed) signedDocUrl = signed.signedUrl;
         }
       } catch (pdfErr) {
@@ -193,7 +196,7 @@ export async function POST(
         const standalonePath = `signed/standalone_${id}_${Date.now()}.pdf`;
         const { error: upErr } = await supabase.storage.from('documents').upload(standalonePath, Buffer.from(standalonePdfBytes), { contentType: 'application/pdf', upsert: true });
         if (!upErr) {
-          const { data: signed } = await supabase.storage.from('documents').createSignedUrl(standalonePath, 60 * 60 * 24 * 365);
+          const { data: signed } = await supabase.storage.from('documents').createSignedUrl(standalonePath, urlExpirySeconds);
           if (signed) signedDocUrl = signed.signedUrl;
         }
       } catch (certErr) {

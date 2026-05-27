@@ -23,7 +23,7 @@ function getSupabase() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { document_id, document_name, signer_name, signer_email } = body;
+    const { document_id, document_name, signer_name, signer_email, signed_url_expiry_years } = body;
 
     if (!document_id || !signer_name || !signer_email) {
       return NextResponse.json({ error: 'document_id, signer_name and signer_email are required' }, { status: 400 });
@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
 
     const token = crypto.randomUUID();
     const supabase = getSupabase();
+    const expiryYears = Math.max(1, Math.min(99, Number(signed_url_expiry_years) || 5));
 
     const { data, error } = await (supabase
       .from('signatures') as any)
@@ -44,6 +45,7 @@ export async function POST(request: NextRequest) {
         signer_name,
         signer_email,
         token,
+        signed_url_expiry_years: expiryYears,
         hash_documento: crypto.createHash('sha256').update(document_id + Date.now()).digest('hex'),
         created_at: new Date().toISOString(),
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),

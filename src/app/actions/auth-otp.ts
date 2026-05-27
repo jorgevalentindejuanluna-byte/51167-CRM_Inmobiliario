@@ -14,11 +14,14 @@ export async function sendLoginOtp(email: string, name: string = 'Usuario') {
   const bodyText = `Hola ${name},\n\nTu código de acceso de 6 dígitos para entrar al CRM Real Top State es:\n\n${otp}\n\nIntroduce este código en la pantalla de inicio de sesión para acceder a tu cuenta.\nSi no has solicitado este acceso, puedes ignorar este mensaje.\n\nUn saludo,\nEquipo de Seguridad`;
 
   try {
+    const { getAgencySmtpConfig } = await import('@/lib/email-service');
+    const dbConfig = await getAgencySmtpConfig('ag-001');
+
     await sendEmailViaSmtp({
       to: [{ name, email }],
       subject,
       bodyText,
-    });
+    }, dbConfig || undefined);
     
     return { success: true, hash };
   } catch (error: any) {

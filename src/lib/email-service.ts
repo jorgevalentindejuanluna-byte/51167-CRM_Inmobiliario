@@ -21,6 +21,12 @@ interface SendEmailInput {
   subject: string;
   bodyText: string;
   bodyHtml?: string;
+  attachments?: {
+    filename: string;
+    content?: Buffer | string;
+    path?: string;
+    contentType?: string;
+  }[];
 }
 
 interface SendEmailResult {
@@ -84,6 +90,7 @@ export async function sendEmailViaSmtp(
       subject: input.subject,
       text: input.bodyText,
       html: input.bodyHtml || input.bodyText.replace(/\n/g, '<br>'),
+      attachments: input.attachments,
     };
 
     const info = await transport.sendMail(mailOptions);

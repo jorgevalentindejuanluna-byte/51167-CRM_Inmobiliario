@@ -9,6 +9,7 @@ interface StrokePoint {
   y: number;
   t: number;
   p?: number;
+  isStart?: boolean;
 }
 
 interface SignatureRequest {
@@ -278,7 +279,12 @@ function SignStep({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [strokes, setStrokes] = useState<StrokePoint[]>([]);
+  const strokesRef = useRef<StrokePoint[]>([]);
   const [hasDrawn, setHasDrawn] = useState(false);
+
+  useEffect(() => {
+    strokesRef.current = strokes;
+  }, [strokes]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -305,11 +311,18 @@ function SignStep({
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
 
-      if (strokes.length > 1) {
+      const currentStrokes = strokesRef.current;
+      if (currentStrokes.length > 0) {
         ctx.beginPath();
-        ctx.moveTo(strokes[0].x, strokes[0].y);
-        for (let i = 1; i < strokes.length; i++) {
-          ctx.lineTo(strokes[i].x, strokes[i].y);
+        for (let i = 0; i < currentStrokes.length; i++) {
+          const pt = currentStrokes[i];
+          if (pt.isStart || i === 0) {
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(pt.x, pt.y);
+          } else {
+            ctx.lineTo(pt.x, pt.y);
+          }
         }
         ctx.stroke();
       }
@@ -318,7 +331,7 @@ function SignStep({
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
     return () => window.removeEventListener('resize', resizeCanvas);
-  }, [strokes]);
+  }, []);
 
   const getPos = (e: any) => {
     const canvas = canvasRef.current;
@@ -337,7 +350,7 @@ function SignStep({
   };
 
   const startDrawing = (e: any) => {
-    const pos = getPos(e);
+    const pos = { ...getPos(e), isStart: true };
     setIsDrawing(true);
 
     const canvas = canvasRef.current;
@@ -347,7 +360,7 @@ function SignStep({
       ctx.moveTo(pos.x, pos.y);
     }
 
-    setStrokes([pos]);
+    setStrokes((prev) => [...prev, pos]);
     setHasDrawn(true);
   };
 
@@ -462,7 +475,6 @@ function ConfirmStep({
   result: SignResult;
   signedDocUrl?: string;
 }) {
-  const viewer = useDocumentViewer();
   const durationSeconds = (result.biometric_summary.duration_ms / 1000).toFixed(1);
   const signedDate = new Date(result.document.signed_at).toLocaleString('es-ES', {
     day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit',
@@ -477,12 +489,13 @@ function ConfirmStep({
       <h2 className={styles.stepTitle}>Documento Firmado con Éxito</h2>
       <p className={styles.stepSubtitle}>La firma biométrica ha sido registrada y almacenada de forma segura.</p>
 
-      <div className={styles.confirmCard}>
-        <h3 className={styles.confirmSectionTitle}>
+      <details className={styles.confirmCard}>
+        <summary className={styles.confirmSectionTitle} style={{ cursor: 'pointer', listStyle: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span className="material-symbols-outlined" style={{ fontSize: 18 }}>description</span>
-          Documento
-        </h3>
-        <div className={styles.confirmGrid}>
+          <span>Documento</span>
+          <span className="material-symbols-outlined" style={{ marginLeft: 'auto' }}>expand_more</span>
+        </summary>
+        <div className={styles.confirmGrid} style={{ marginTop: '16px' }}>
           <div className={styles.confirmRow}>
             <span className={styles.confirmLabel}>Título</span>
             <span className={styles.confirmValue}>{request.title}</span>
@@ -496,14 +509,15 @@ function ConfirmStep({
             <span className={styles.confirmValue}>{signedDate}</span>
           </div>
         </div>
-      </div>
+      </details>
 
-      <div className={styles.confirmCard}>
-        <h3 className={styles.confirmSectionTitle}>
+      <details className={styles.confirmCard}>
+        <summary className={styles.confirmSectionTitle} style={{ cursor: 'pointer', listStyle: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span className="material-symbols-outlined" style={{ fontSize: 18 }}>biotech</span>
-          Datos Biométricos Capturados
-        </h3>
-        <div className={styles.confirmGrid}>
+          <span>Datos Biométricos Capturados</span>
+          <span className="material-symbols-outlined" style={{ marginLeft: 'auto' }}>expand_more</span>
+        </summary>
+        <div className={styles.confirmGrid} style={{ marginTop: '16px' }}>
           <div className={styles.confirmRow}>
             <span className={styles.confirmLabel}>Puntos del trazo</span>
             <span className={styles.confirmValue}>{result.biometric_summary.strokes_count}</span>
@@ -529,14 +543,15 @@ function ConfirmStep({
             <span className={styles.confirmValue}>{result.biometric_summary.device}</span>
           </div>
         </div>
-      </div>
+      </details>
 
-      <div className={styles.confirmCard}>
-        <h3 className={styles.confirmSectionTitle}>
+      <details className={styles.confirmCard}>
+        <summary className={styles.confirmSectionTitle} style={{ cursor: 'pointer', listStyle: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span className="material-symbols-outlined" style={{ fontSize: 18 }}>fingerprint</span>
-          Identificación del Documento Firmado
-        </h3>
-        <div className={styles.confirmGrid}>
+          <span>Identificación del Documento</span>
+          <span className="material-symbols-outlined" style={{ marginLeft: 'auto' }}>expand_more</span>
+        </summary>
+        <div className={styles.confirmGrid} style={{ marginTop: '16px' }}>
           <div className={styles.hashRow}>
             <span className={styles.confirmLabel}>Hash SHA-256 original</span>
             <code className={styles.hash}>{result.document.hash_original}</code>
@@ -546,40 +561,20 @@ function ConfirmStep({
             <code className={styles.hash}>{result.document.hash_firmado}</code>
           </div>
         </div>
+      </details>
+
+      <div className={styles.footerNote} style={{ marginTop: '32px', textAlign: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '24px' }}>
+        <p style={{ fontSize: '1.1rem', fontWeight: 500, color: 'var(--color-text)' }}>
+          ¡Muchas gracias por su confianza, {request.signer_name.split(' ')[0]}!
+        </p>
+        <p style={{ marginTop: '8px', color: 'var(--color-text-light)' }}>
+          Hemos enviado un correo electrónico con una copia del documento final firmado y su certificado de autenticidad para sus archivos.
+        </p>
       </div>
 
-      <div className={styles.footerNote}>
+      <div className={styles.footerNote} style={{ marginTop: '16px' }}>
         <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--color-secondary)' }}>verified_user</span>
-        <p>Firma biométrica válida según el Reglamento eIDAS (UE) N.º 910/2014. Los datos biométricos y hashes han sido sellados en la base de datos.</p>
-      </div>
-
-      <div className={styles.actions}>
-        {signedDocUrl && (
-          <button
-            onClick={() => viewer.openViewer({ url: signedDocUrl, fileName: request.title || 'Documento Firmado', fileType: 'application/pdf' })}
-            className={`btn btn--secondary btn--lg ${styles.fullWidth}`}
-          >
-            <span className="material-symbols-outlined">visibility</span>
-            Ver Documento Firmado
-          </button>
-        )}
-        <button
-          className={`btn btn--primary btn--lg ${styles.fullWidth}`}
-          onClick={() => window.print()}
-        >
-          <span className="material-symbols-outlined">print</span>
-          Imprimir Comprobante
-        </button>
-        {request.document?.id && (
-          <a
-            href="/documents"
-            className={`btn btn--ghost btn--lg ${styles.fullWidth}`}
-            style={{ textDecoration: 'none' }}
-          >
-            <span className="material-symbols-outlined">arrow_back</span>
-            Volver al CRM
-          </a>
-        )}
+        <p>Firma biométrica válida según el Reglamento eIDAS (UE) N.º 910/2014.</p>
       </div>
     </div>
   );

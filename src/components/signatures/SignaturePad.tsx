@@ -8,6 +8,7 @@ interface Point {
   y: number;
   t: number; // Timestamp
   p?: number; // Presión
+  isStart?: boolean;
 }
 
 interface SignaturePadProps {
@@ -20,6 +21,11 @@ export default function SignaturePad({ onSave, onClear }: SignaturePadProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [strokes, setStrokes] = useState<Point[]>([]);
+  const strokesRef = useRef<Point[]>([]);
+
+  useEffect(() => {
+    strokesRef.current = strokes;
+  }, [strokes]);
   
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -50,11 +56,18 @@ export default function SignaturePad({ onSave, onClear }: SignaturePadProps) {
       ctx.lineJoin = 'round';
       
       // Dibujar los trazos previos si el canvas se redimensiona
-      if (strokes.length > 1) {
+      const currentStrokes = strokesRef.current;
+      if (currentStrokes.length > 0) {
         ctx.beginPath();
-        ctx.moveTo(strokes[0].x, strokes[0].y);
-        for (let i = 1; i < strokes.length; i++) {
-          ctx.lineTo(strokes[i].x, strokes[i].y);
+        for (let i = 0; i < currentStrokes.length; i++) {
+          const pt = currentStrokes[i];
+          if (pt.isStart || i === 0) {
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(pt.x, pt.y);
+          } else {
+            ctx.lineTo(pt.x, pt.y);
+          }
         }
         ctx.stroke();
       }
@@ -66,7 +79,7 @@ export default function SignaturePad({ onSave, onClear }: SignaturePadProps) {
     return () => {
       window.removeEventListener('resize', resizeCanvas);
     };
-  }, [strokes]);
+  }, []); // Dependencias vacías para no limpiar el canvas al dibujar
 
   const getPos = (e: any) => {
     const canvas = canvasRef.current;
@@ -85,7 +98,7 @@ export default function SignaturePad({ onSave, onClear }: SignaturePadProps) {
   };
 
   const startDrawing = (e: any) => {
-    const pos = getPos(e);
+    const pos = { ...getPos(e), isStart: true };
     setIsDrawing(true);
     
     const canvas = canvasRef.current;

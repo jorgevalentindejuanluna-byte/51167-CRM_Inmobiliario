@@ -42,7 +42,8 @@ function sanitizeUUID(id: string | undefined): string | undefined {
 /** Helper local para persistencia temporal en el navegador */
 function getLocalMock<T>(table: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback;
-  const cached = localStorage.getItem(`crm_mock_${table}`);
+  const key = table === 'documents' ? 'local_documents' : `crm_mock_${table}`;
+  const cached = localStorage.getItem(key);
   if (cached) {
     try {
       return JSON.parse(cached);
@@ -55,7 +56,8 @@ function getLocalMock<T>(table: string, fallback: T): T {
 
 export function saveLocalMock(table: string, data: any) {
   if (typeof window !== 'undefined') {
-    localStorage.setItem(`crm_mock_${table}`, JSON.stringify(data));
+    const key = table === 'documents' ? 'local_documents' : `crm_mock_${table}`;
+    localStorage.setItem(key, JSON.stringify(data));
   }
 }
 
@@ -178,6 +180,7 @@ export function useDashboardKpis() {
   return { data: MOCK_DASHBOARD_KPIS, loading: false, source: 'mock' as const };
 }
 
+// ── Actividad reciente ──
 export function useActivity() {
   return { data: MOCK_ACTIVITY, loading: false, source: 'mock' as const };
 }
@@ -216,10 +219,22 @@ export function useDocuments(filters: { lead_id?: string; operation_id?: string;
       if (!cancelled) {
         let finalData = data;
         if (source === 'mock') {
-          finalData = MOCK_DOCUMENTS.filter(doc => {
-            if (filters.lead_id && doc.lead_id !== filters.lead_id) return false;
-            if (filters.operation_id && doc.operation_id !== filters.operation_id) return false;
-            if (filters.property_id && doc.property_id !== filters.property_id) return false;
+          finalData = (data || []).filter(doc => {
+            if (filters.lead_id) {
+              const docLead = sanitizeUUID(doc.lead_id);
+              const filterLead = sanitizeUUID(filters.lead_id);
+              if (docLead !== filterLead) return false;
+            }
+            if (filters.operation_id) {
+              const docOp = sanitizeUUID(doc.operation_id);
+              const filterOp = sanitizeUUID(filters.operation_id);
+              if (docOp !== filterOp) return false;
+            }
+            if (filters.property_id) {
+              const docProp = sanitizeUUID(doc.property_id);
+              const filterProp = sanitizeUUID(filters.property_id);
+              if (docProp !== filterProp) return false;
+            }
             return true;
           });
         }

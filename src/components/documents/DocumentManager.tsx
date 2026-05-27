@@ -179,12 +179,12 @@ export default function DocumentManager({ leadId, operationId, propertyId, agenc
   const confirmOcrData = async () => {
     if (!pendingDoc) return;
     try {
-      // Registrar el documento definitivo en la base de datos
-      await supabaseInsert('documents', {
+      const newDoc: CRMDocument = {
+        id: `doc-${Date.now()}`,
         agency_id: sanitizeUUID(agencyId)!,
-        lead_id: leadId ? sanitizeUUID(leadId) : null,
-        operation_id: operationId ? sanitizeUUID(operationId) : null,
-        property_id: propertyId ? sanitizeUUID(propertyId) : null,
+        lead_id: leadId ? (sanitizeUUID(leadId) || undefined) : undefined,
+        operation_id: operationId ? (sanitizeUUID(operationId) || undefined) : undefined,
+        property_id: propertyId ? (sanitizeUUID(propertyId) || undefined) : undefined,
         name: pendingDoc.file.name,
         type: pendingDoc.ocrMetadata.docType,
         url: pendingDoc.path,
@@ -192,27 +192,76 @@ export default function DocumentManager({ leadId, operationId, propertyId, agenc
         status: 'subido',
         visibility: 'interno',
         metadata: pendingDoc.ocrMetadata,
-        uploaded_by: user?.id ? sanitizeUUID(user.id) : null
-      }, token || undefined);
+        uploaded_by: user?.id ? (sanitizeUUID(user.id) || undefined) : undefined,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      try {
+        const res = await supabaseInsert('documents', {
+          agency_id: newDoc.agency_id,
+          lead_id: newDoc.lead_id,
+          operation_id: newDoc.operation_id,
+          property_id: newDoc.property_id,
+          name: newDoc.name,
+          type: newDoc.type,
+          url: newDoc.url,
+          size: newDoc.size,
+          status: newDoc.status,
+          visibility: newDoc.visibility,
+          metadata: newDoc.metadata,
+          uploaded_by: newDoc.uploaded_by
+        }, token || undefined);
+        if (res && res[0]) {
+          newDoc.id = (res[0] as any).id;
+        }
+      } catch (dbErr) {
+        console.warn('[DB] Fallback local para guardar el documento.');
+      }
+
+      // Guardar también en localStorage key 'local_documents'
+      const cached = localStorage.getItem('local_documents');
+      let localDocsList: CRMDocument[] = [];
+      if (cached) {
+        try {
+          localDocsList = JSON.parse(cached);
+        } catch (e) {
+          localDocsList = [];
+        }
+      }
+      localDocsList = [newDoc, ...localDocsList];
+      localStorage.setItem('local_documents', JSON.stringify(localDocsList));
 
       setShowOcrModal(false);
       setPendingDoc(null);
       setUploading(false);
       window.location.reload();
-    } catch (dbErr: any) {
-      setError(dbErr.message || 'Error al guardar el documento en base de datos.');
+    } catch (err: any) {
+      setError(err.message || 'Error al guardar el documento.');
       setShowOcrModal(false);
       setUploading(false);
     }
   };
 
   const updateStatus = async (docId: string, newStatus: string) => {
-    if (!token) return;
     try {
-      await supabaseUpdate('documents', docId, { 
-        status: newStatus,
-        reviewed_by: user?.id ? sanitizeUUID(user.id) : null 
-      }, token || undefined);
+      try {
+        await supabaseUpdate('documents', docId, { 
+          status: newStatus,
+          reviewed_by: user?.id ? sanitizeUUID(user.id) : null 
+        }, token || undefined);
+      } catch (err) {
+        console.warn('[DB] Fallback local para actualización de estado.');
+      }
+
+      const cached = localStorage.getItem('local_documents');
+      if (cached) {
+        try {
+          const list = JSON.parse(cached) as CRMDocument[];
+          const updated = list.map(d => d.id === docId ? { ...d, status: newStatus, reviewed_by: user?.id ? sanitizeUUID(user.id) : null } : d);
+          localStorage.setItem('local_documents', JSON.stringify(updated));
+        } catch (e) {}
+      }
       window.location.reload();
     } catch (err) {
       console.error('Error updating status:', err);
@@ -220,10 +269,22 @@ export default function DocumentManager({ leadId, operationId, propertyId, agenc
   };
 
   const toggleVisibility = async (docId: string, currentVisibility: string) => {
-    if (!token) return;
     const newVisibility = currentVisibility === 'interno' ? 'publico' : 'interno';
     try {
-      await supabaseUpdate('documents', docId, { visibility: newVisibility }, token || undefined);
+      try {
+        await supabaseUpdate('documents', docId, { visibility: newVisibility }, token || undefined);
+      } catch (err) {
+        console.warn('[DB] Fallback local para cambiar visibilidad.');
+      }
+
+      const cached = localStorage.getItem('local_documents');
+      if (cached) {
+        try {
+          const list = JSON.parse(cached) as CRMDocument[];
+          const updated = list.map(d => d.id === docId ? { ...d, visibility: newVisibility } : d);
+          localStorage.setItem('local_documents', JSON.stringify(updated));
+        } catch (e) {}
+      }
       window.location.reload();
     } catch (err) {
       console.error('Error updating visibility:', err);

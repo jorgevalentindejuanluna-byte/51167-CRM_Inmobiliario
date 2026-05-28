@@ -363,9 +363,50 @@ export function DocumentsClient() {
       }
 
       if (ocrEnabled) {
-        const ocrMetadata = await processWithGemini(file);
-        setPendingDoc({ file, path: finalUrl, ocrMetadata });
-        setShowOcrModal(true);
+        let ocrMetadata;
+        try {
+          ocrMetadata = await processWithGemini(file);
+          setPendingDoc({ file, path: finalUrl, ocrMetadata });
+          setShowOcrModal(true);
+        } catch (ocrErr: any) {
+          console.warn('[OCR] Error procesando con Gemini, se guarda sin OCR:', ocrErr?.message);
+          const newDoc: CRMDocument = {
+            id: `doc-${Date.now()}`,
+            agency_id: sanitizeUUID(agencyId)!,
+            name: file.name,
+            type: 'Documento',
+            url: finalUrl,
+            size: file.size,
+            status: 'subido',
+            visibility: 'interno',
+            uploaded_by: user?.id ? sanitizeUUID(user.id) : 'usr-001',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          let dbWarning = '';
+          try {
+            const res = await saveDocument({
+              agency_id: newDoc.agency_id, name: newDoc.name, type: newDoc.type,
+              url: newDoc.url, size: newDoc.size, status: newDoc.status,
+              visibility: newDoc.visibility, uploaded_by: newDoc.uploaded_by
+            });
+            if (!res.success) throw new Error(res.error);
+            newDoc.id = res.data.id;
+          } catch (dbErr: any) {
+            dbWarning = dbErr?.message || 'Error al guardar el registro.';
+          }
+          setLocalDocs(prev => {
+            const updated = [newDoc, ...prev];
+            localStorage.setItem('local_documents', JSON.stringify(updated));
+            return updated;
+          });
+          setUploading(false);
+          const msg = (storageWarning ? `Almacenamiento: ${storageWarning}. ` : '') +
+            (dbWarning ? `Base de datos: ${dbWarning}. ` : '') +
+            'OCR no disponible. Documento guardado localmente.';
+          if (storageWarning || dbWarning) modal.showWarning('Aviso', msg);
+          else modal.showSuccess('Éxito', 'Documento guardado sin OCR.');
+        }
       } else {
         const newDoc: CRMDocument = {
           id: `doc-${Date.now()}`,
@@ -957,21 +998,66 @@ export function DocumentsClient() {
       const propertyIdSanitized = uploadForm.association === 'property' && uploadForm.propertyId ? sanitizeUUID(uploadForm.propertyId) : undefined;
 
       if (ocrEnabled) {
-        const ocrMetadata = await processWithGemini(file);
-        setPendingDoc({
-          file,
-          path: finalUrl,
-          ocrMetadata,
-          // Pasar form data para usarlo en confirmOcrData
-          formOverride: {
+        try {
+          const ocrMetadata = await processWithGemini(file);
+          setPendingDoc({
+            file,
+            path: finalUrl,
+            ocrMetadata,
+            formOverride: {
+              type: uploadForm.docType,
+              description: uploadForm.description,
+              lead_id: leadIdSanitized,
+              property_id: propertyIdSanitized,
+              visibility: uploadForm.visibility,
+            }
+          });
+          setShowOcrModal(true);
+        } catch (ocrErr: any) {
+          console.warn('[OCR] Error, se guarda sin OCR:', ocrErr?.message);
+          const newDoc: CRMDocument = {
+            id: `doc-${Date.now()}`,
+            agency_id: sanitizeUUID(agencyId)!,
+            name: file.name,
             type: uploadForm.docType,
-            description: uploadForm.description,
+            url: finalUrl,
+            size: file.size,
+            status: 'subido',
+            visibility: uploadForm.visibility,
             lead_id: leadIdSanitized,
             property_id: propertyIdSanitized,
-            visibility: uploadForm.visibility,
+            metadata: uploadForm.description ? { description: uploadForm.description } : undefined,
+            uploaded_by: user?.id ? sanitizeUUID(user.id) : 'usr-001',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          let dbWarningUF = '';
+          try {
+            const res = await saveDocument({
+              agency_id: newDoc.agency_id, name: newDoc.name, type: newDoc.type,
+              url: newDoc.url, size: newDoc.size, status: newDoc.status,
+              visibility: newDoc.visibility, lead_id: newDoc.lead_id,
+              property_id: newDoc.property_id, metadata: newDoc.metadata,
+              uploaded_by: newDoc.uploaded_by
+            });
+            if (!res.success) throw new Error(res.error);
+            newDoc.id = res.data.id;
+          } catch (dbErr: any) {
+            dbWarningUF = dbErr?.message || 'Error al guardar el registro en base de datos.';
+            console.warn('[DB] Error guardando documento en Supabase:', dbWarningUF);
           }
-        });
-        setShowOcrModal(true);
+          setLocalDocs(prev => {
+            const updated = [newDoc, ...prev];
+            localStorage.setItem('local_documents', JSON.stringify(updated));
+            return updated;
+          });
+          setUploading(false);
+          const msg = (storageWarningUF ? `Almacenamiento: ${storageWarningUF}. ` : '') +
+            (dbWarningUF ? `Base de datos: ${dbWarningUF}. ` : '') +
+            'OCR no disponible. Documento guardado localmente.';
+          if (storageWarningUF || dbWarningUF) modal.showWarning('Aviso', msg);
+          else modal.showSuccess('Éxito', 'Documento guardado sin OCR.');
+        }
       } else {
         const newDoc: CRMDocument = {
           id: `doc-${Date.now()}`,

@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
     const genAI = new GoogleGenerativeAI(apiKey);
     // Usamos el modelo rápido y multimodal
-    const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     // Convertir el archivo subido a base64 para Gemini
     const arrayBuffer = await file.arrayBuffer();

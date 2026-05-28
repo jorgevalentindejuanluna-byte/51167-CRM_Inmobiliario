@@ -4,13 +4,13 @@ import { useState, useEffect } from 'react';
 import { supabaseSelect } from './supabase';
 import { useAuth } from './auth-context';
 import type { Lead, Property, Operation, User, CRMDocument, CRMSignature, Agent, AgentActivity, AgentPropertyAssignment, AgentClientAssignment, AgentCommission, EmailThread, EmailMessage, EmailFolder } from './models/types';
-import { toUUID } from './mock-data';
+import { toUUID, MOCK_DOCUMENTS } from './mock-data';
 
 interface DataState<T> {
   data: T;
   loading: boolean;
   error: string | null;
-  source: 'supabase';
+  source: 'supabase' | 'mock';
 }
 
 /** Sanitizar IDs de mock a UUIDs reales antes de consultar a Supabase */
@@ -165,7 +165,11 @@ export function useDocuments(filters: { lead_id?: string; operation_id?: string;
       order: { column: 'created_at', ascending: false }
     }).then(({ data }) => {
       if (!cancelled) {
-        setState({ data, loading: false, error: null, source: 'supabase' });
+        if (data.length > 0) {
+          setState({ data, loading: false, error: null, source: 'supabase' });
+        } else {
+          setState({ data: MOCK_DOCUMENTS, loading: false, error: null, source: 'mock' });
+        }
       }
     });
     return () => { cancelled = true; };

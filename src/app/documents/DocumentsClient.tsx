@@ -40,7 +40,16 @@ export function DocumentsClient() {
   // Sincronizar el estado local con los datos cargados desde Supabase
   useEffect(() => {
     if (documents) {
-      setLocalDocs(documents);
+      if (documents.length > 0) {
+        setLocalDocs(documents);
+      } else {
+        const saved = localStorage.getItem('local_documents');
+        if (saved) {
+          try { setLocalDocs(JSON.parse(saved)); } catch {}
+        } else {
+          setLocalDocs(documents);
+        }
+      }
     }
   }, [documents]);
 

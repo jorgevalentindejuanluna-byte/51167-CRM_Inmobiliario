@@ -258,10 +258,9 @@ export default function DocumentManager({ leadId, operationId, propertyId, agenc
   const handleOpenPdfViewer = async (doc: CRMDocument) => {
     if (!doc.url) return;
     let viewerUrl = doc.url;
-    if (viewerUrl.startsWith('ag-') || viewerUrl.startsWith('documents/')) {
+    if (!viewerUrl.startsWith('http://') && !viewerUrl.startsWith('https://')) {
       const res = await getSignedUrlIfExists(viewerUrl, 'documents');
       if (res?.url) viewerUrl = res.url;
-      else return;
     }
     viewer.openViewer({
       url: viewerUrl,
@@ -269,6 +268,21 @@ export default function DocumentManager({ leadId, operationId, propertyId, agenc
       fileType: doc.type,
       metadata: doc.metadata,
     });
+  };
+
+  const handleDownloadDoc = async (doc: CRMDocument) => {
+    if (!doc.url) return;
+    let downloadUrl = doc.url;
+    if (!downloadUrl.startsWith('http://') && !downloadUrl.startsWith('https://')) {
+      const res = await getSignedUrlIfExists(downloadUrl, 'documents');
+      if (res?.url) downloadUrl = res.url;
+    }
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = doc.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   return (
@@ -396,9 +410,14 @@ export default function DocumentManager({ leadId, operationId, propertyId, agenc
                           </>
                         )}
                         {doc.url && (
-                          <button className={styles.actionBtn} onClick={() => handleOpenPdfViewer(doc)} title="Ver PDF" style={{ color: 'var(--color-secondary)' }}>
-                            <span className="material-symbols-outlined">visibility</span>
-                          </button>
+                          <>
+                            <button className={styles.actionBtn} onClick={() => handleOpenPdfViewer(doc)} title="Ver PDF" style={{ color: 'var(--color-secondary)' }}>
+                              <span className="material-symbols-outlined">visibility</span>
+                            </button>
+                            <button className={styles.actionBtn} onClick={() => handleDownloadDoc(doc)} title="Descargar">
+                              <span className="material-symbols-outlined">download</span>
+                            </button>
+                          </>
                         )}
                         <button className={styles.actionBtn} onClick={() => openDocDetails(doc)} title="Detalles e Historial">
                           <span className="material-symbols-outlined">info</span>

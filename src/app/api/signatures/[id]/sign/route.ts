@@ -98,40 +98,63 @@ export async function POST(
     async function addSecurityPage(pdfDoc: PDFDocument, font: any, fontBold: any) {
       let sigImage: any = null;
       if (signatureImageUrl) {
-        const sigImageBytes = await fetch(signatureImageUrl).then(r => r.arrayBuffer());
-        try { sigImage = await pdfDoc.embedPng(sigImageBytes); } catch { sigImage = await pdfDoc.embedJpg(sigImageBytes); }
+        try {
+          const sigImageBytes = await fetch(signatureImageUrl).then(r => r.arrayBuffer());
+          try { sigImage = await pdfDoc.embedPng(sigImageBytes); } catch { sigImage = await pdfDoc.embedJpg(sigImageBytes); }
+        } catch { /* ignore img */ }
       }
 
       const pages = pdfDoc.getPages();
-      const page = pages.length > 0 ? pages[pages.length - 1] : pdfDoc.addPage([595, 842]);
-      const { width } = page.getSize();
-      
-      const boxW = Math.min(width - 40, 500);
-      const boxX = (width - boxW) / 2;
-      const boxY = 20;
-      const boxH = 90;
+      if (pages.length === 0) {
+        pdfDoc.addPage([595, 842]);
+        pages.push(pages[pages.length - 1]);
+      }
 
-      page.drawRectangle({
-        x: boxX, y: boxY, width: boxW, height: boxH,
-        borderColor: rgb(0.8, 0.8, 0.8), borderWidth: 1, color: rgb(0.98, 0.98, 0.98)
-      });
+      for (const page of pages) {
+        const { width } = page.getSize();
+        const boxW = Math.min(width - 40, 500);
+        const boxX = (width - boxW) / 2;
+        const boxY = 18;
+        const boxH = 85;
 
-      let currentY = boxY + boxH - 18;
+        page.drawRectangle({
+          x: boxX, y: boxY, width: boxW, height: boxH,
+          borderColor: rgb(0.8, 0.8, 0.8), borderWidth: 0.5, color: rgb(0.98, 0.98, 0.98)
+        });
 
-      page.drawText('FIRMADO ELECTRÓNICAMENTE (eIDAS 910/2014)', { x: boxX + 10, y: currentY, size: 10, font: fontBold, color: rgb(0.13, 0.13, 0.13) });
-      currentY -= 16;
+        let currentY = boxY + boxH - 15;
 
-      page.drawText(`Firmante: ${sig.signer_name || 'N/A'}`, { x: boxX + 10, y: currentY, size: 9, font });
-      currentY -= 12;
-      page.drawText(`Fecha: ${new Date(signedAt).toLocaleString('es-ES')}`, { x: boxX + 10, y: currentY, size: 9, font });
-      currentY -= 12;
-      page.drawText(`Dispositivo: ${biometricAnalysis.device}`, { x: boxX + 10, y: currentY, size: 9, font });
-      currentY -= 16;
-      page.drawText(`Hash: sha256:${hashFirmado}`, { x: boxX + 10, y: currentY, size: 8, font: fontBold, color: rgb(0.3, 0.3, 0.3) });
+        page.drawText('FIRMADO ELECTRÓNICAMENTE (eIDAS 910/2014)', {
+          x: boxX + 8, y: currentY, size: 8, font: fontBold, color: rgb(0.13, 0.13, 0.13)
+        });
+        currentY -= 14;
 
-      if (sigImage) {
-        const dims = sigImage.scaleToFit(120, boxH - 20);
-        page.drawImage(sigImage, { x: boxX + boxW - dims.width - 10, y: boxY + 10, width: dims.width, height: dims.height });
+        page.drawText(`Firmante: ${sig.signer_name || 'N/A'}`, {
+          x: boxX + 8, y: currentY, size: 7, font
+        });
+        currentY -= 10;
+
+        page.drawText(`Fecha: ${new Date(signedAt).toLocaleString('es-ES')} — IP: ${ipAddress}`, {
+          x: boxX + 8, y: currentY, size: 7, font
+        });
+        currentY -= 10;
+
+        page.drawText(`Dispositivo: ${biometricAnalysis.device}`, {
+          x: boxX + 8, y: currentY, size: 7, font
+        });
+        currentY -= 12;
+
+        page.drawText(`Hash: sha256:${hashFirmado.substring(0, 24)}...`, {
+          x: boxX + 8, y: currentY, size: 6, font: fontBold, color: rgb(0.3, 0.3, 0.3)
+        });
+
+        if (sigImage) {
+          const dims = sigImage.scaleToFit(110, boxH - 5);
+          page.drawImage(sigImage, {
+            x: boxX + boxW - dims.width - 6, y: boxY + 4,
+            width: dims.width, height: dims.height
+          });
+        }
       }
     }
 

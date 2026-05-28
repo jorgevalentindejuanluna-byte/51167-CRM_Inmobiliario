@@ -29,7 +29,9 @@ export default function PdfViewerModal({ url, fileName, fileType, metadata, onCl
     const a = document.createElement('a');
     a.href = url;
     a.download = fileName;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
   };
 
   const sig = metadata?.signatures;

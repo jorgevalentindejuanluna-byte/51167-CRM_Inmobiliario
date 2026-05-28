@@ -176,7 +176,9 @@ export function DocumentsClient() {
     const a = document.createElement('a');
     a.href = url;
     a.download = doc.name;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
   };
 
   // No se persiste localDocs en localStorage para depender 100% de la BD.

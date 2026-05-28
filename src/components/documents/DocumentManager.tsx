@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useDocuments } from '@/lib/use-data';
-import { supabaseUploadFile, supabaseInsert, supabaseUpdate } from '@/lib/supabase';
+import { supabaseUploadFile } from '@/lib/supabase';
 import { useDocumentViewer } from '@/lib/document-viewer-context';
-import { getSignedUrlIfExists } from '@/app/actions/documents';
+import { getSignedUrlIfExists, saveDocument, updateDocument } from '@/app/actions/documents';
 import type { CRMDocument } from '@/lib/models/types';
 import { toUUID } from '@/lib/mock-data';
 import styles from './DocumentManager.module.css';
@@ -198,7 +198,7 @@ export default function DocumentManager({ leadId, operationId, propertyId, agenc
       };
 
       try {
-        const res = await supabaseInsert('documents', {
+        const res = await saveDocument({
           agency_id: newDoc.agency_id,
           lead_id: newDoc.lead_id,
           operation_id: newDoc.operation_id,
@@ -211,8 +211,9 @@ export default function DocumentManager({ leadId, operationId, propertyId, agenc
           visibility: newDoc.visibility,
           metadata: newDoc.metadata,
           uploaded_by: newDoc.uploaded_by
-        }, token || undefined);
-      } catch (dbErr) {
+        });
+        if (!res.success) throw new Error(res.error);
+      } catch (dbErr: any) {
         console.error('[DB] Error guardando documento en Supabase:', dbErr);
         throw dbErr;
       }
@@ -230,10 +231,10 @@ export default function DocumentManager({ leadId, operationId, propertyId, agenc
 
   const updateStatus = async (docId: string, newStatus: string) => {
     try {
-      await supabaseUpdate('documents', docId, { 
+      await updateDocument(docId, { 
         status: newStatus,
         reviewed_by: user?.id ? sanitizeUUID(user.id) : null 
-      }, token || undefined);
+      });
       window.location.reload();
     } catch (err) {
       console.error('Error updating status:', err);
@@ -243,7 +244,7 @@ export default function DocumentManager({ leadId, operationId, propertyId, agenc
   const toggleVisibility = async (docId: string, currentVisibility: string) => {
     const newVisibility = currentVisibility === 'interno' ? 'publico' : 'interno';
     try {
-      await supabaseUpdate('documents', docId, { visibility: newVisibility }, token || undefined);
+      await updateDocument(docId, { visibility: newVisibility });
       window.location.reload();
     } catch (err) {
       console.error('Error updating visibility:', err);

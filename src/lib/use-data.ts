@@ -168,7 +168,13 @@ export function useDocuments(filters: { lead_id?: string; operation_id?: string;
         if (data.length > 0) {
           setState({ data, loading: false, error: null, source: 'supabase' });
         } else {
-          setState({ data: MOCK_DOCUMENTS, loading: false, error: null, source: 'mock' });
+          const filtered = MOCK_DOCUMENTS.filter(d => {
+            if (filters.lead_id && d.lead_id !== filters.lead_id) return false;
+            if (filters.operation_id && d.operation_id !== filters.operation_id) return false;
+            if (filters.property_id && d.property_id !== filters.property_id) return false;
+            return true;
+          });
+          setState({ data: filtered, loading: false, error: null, source: 'mock' });
         }
       }
     });

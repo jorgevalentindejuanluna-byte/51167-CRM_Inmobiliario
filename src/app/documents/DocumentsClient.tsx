@@ -427,15 +427,18 @@ export function DocumentsClient() {
   const confirmOcrData = async () => {
     if (!pendingDoc) return;
     try {
+      const override = pendingDoc.formOverride || {};
       const newDoc: CRMDocument = {
         id: `doc-${Date.now()}`,
         agency_id: sanitizeUUID(agencyId)!,
         name: pendingDoc.file.name,
-        type: pendingDoc.ocrMetadata.docType,
+        type: override.type || pendingDoc.ocrMetadata.docType,
         url: pendingDoc.path,
         size: pendingDoc.file.size,
         status: 'subido',
-        visibility: 'interno',
+        visibility: override.visibility || 'interno',
+        lead_id: override.lead_id,
+        property_id: override.property_id,
         metadata: pendingDoc.ocrMetadata,
         uploaded_by: user?.id ? sanitizeUUID(user.id) : 'usr-001',
         created_at: new Date().toISOString(),
@@ -453,6 +456,8 @@ export function DocumentsClient() {
           size: newDoc.size,
           status: newDoc.status,
           visibility: newDoc.visibility,
+          lead_id: newDoc.lead_id,
+          property_id: newDoc.property_id,
           metadata: newDoc.metadata,
           uploaded_by: newDoc.uploaded_by
         });

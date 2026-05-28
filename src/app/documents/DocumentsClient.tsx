@@ -346,6 +346,7 @@ export function DocumentsClient() {
       const path = `${cleanAgencyId}/${folder}/${fileName}`;
 
       let finalUrl = path;
+      let storageWarning = '';
       // Intentar subir a Supabase usando Server Action para saltar RLS
       try {
         const formData = new FormData();
@@ -355,8 +356,9 @@ export function DocumentsClient() {
         const res = await uploadFile(formData);
         if (!res.success) throw new Error(res.error);
         finalUrl = res.path ?? path;
-      } catch (storageErr) {
-        console.warn('[Storage] Fallback a subida local/mock en entorno sandbox.');
+      } catch (storageErr: any) {
+        storageWarning = storageErr?.message || 'Error de conexión con el almacenamiento.';
+        console.warn('[Storage] Error subiendo a Supabase:', storageWarning);
         finalUrl = URL.createObjectURL(file);
       }
 
@@ -379,6 +381,7 @@ export function DocumentsClient() {
           updated_at: new Date().toISOString()
         };
 
+        let dbWarning = '';
         try {
           const res = await saveDocument({
             agency_id: newDoc.agency_id,
@@ -392,8 +395,9 @@ export function DocumentsClient() {
           });
           if (!res.success) throw new Error(res.error);
           newDoc.id = res.data.id;
-        } catch (dbErr) {
-          console.warn('[DB] Fallback local para guardar el documento.');
+        } catch (dbErr: any) {
+          dbWarning = dbErr?.message || 'Error al guardar el registro en base de datos.';
+          console.warn('[DB] Error guardando documento en Supabase:', dbWarning);
         }
 
         setLocalDocs(prev => {
@@ -402,7 +406,15 @@ export function DocumentsClient() {
           return updated;
         });
         setUploading(false);
-        modal.showSuccess('Éxito', 'Documento cargado correctamente.');
+        if (storageWarning || dbWarning) {
+          modal.showWarning('Documento guardado localmente', 
+            `El documento se ha guardado en el navegador pero no se ha podido sincronizar con el servidor.\n\n` +
+            (storageWarning ? `• Almacenamiento: ${storageWarning}\n` : '') +
+            (dbWarning ? `• Base de datos: ${dbWarning}` : '') +
+            `\n\nPuedes ver el documento en la lista, pero no estará disponible hasta que se solucione la conexión.`);
+        } else {
+          modal.showSuccess('Éxito', 'Documento cargado correctamente en Supabase.');
+        }
       }
     } catch (err: any) {
       console.error('Error uploading doc:', err);
@@ -431,6 +443,7 @@ export function DocumentsClient() {
       };
 
       // Intentar guardar en Base de datos real saltando RLS
+      let dbWarningOCR = '';
       try {
         const res = await saveDocument({
           agency_id: newDoc.agency_id,
@@ -445,8 +458,9 @@ export function DocumentsClient() {
         });
         if (!res.success) throw new Error(res.error);
         newDoc.id = res.data.id;
-      } catch (dbErr) {
-        console.warn('[DB] Fallback local para guardar el documento.');
+      } catch (dbErr: any) {
+        dbWarningOCR = dbErr?.message || 'Error al guardar el registro en base de datos.';
+        console.warn('[DB] Error guardando documento en Supabase:', dbWarningOCR);
       }
 
       setLocalDocs(prev => {
@@ -457,7 +471,13 @@ export function DocumentsClient() {
       setShowOcrModal(false);
       setPendingDoc(null);
       setUploading(false);
-      modal.showSuccess('Éxito', 'Documento cargado e indexado mediante OCR correctamente.');
+      if (dbWarningOCR) {
+        modal.showWarning('Documento indexado localmente',
+          `El OCR se completó pero no se pudo guardar en el servidor: ${dbWarningOCR}\n\n` +
+          `El documento solo está disponible en este navegador.`);
+      } else {
+        modal.showSuccess('Éxito', 'Documento cargado e indexado mediante OCR correctamente.');
+      }
     } catch (dbErr: any) {
       setError(dbErr.message || 'Error al guardar en base de datos.');
       setShowOcrModal(false);
@@ -912,6 +932,7 @@ export function DocumentsClient() {
       const path = `${cleanAgencyId}/${folder}/${fileName}`;
 
       let finalUrl = path;
+      let storageWarningUF = '';
       try {
         const formData = new FormData();
         formData.append('file', file);
@@ -920,8 +941,9 @@ export function DocumentsClient() {
         const res = await uploadFile(formData);
         if (!res.success) throw new Error(res.error);
         finalUrl = res.path ?? path;
-      } catch (storageErr) {
-        console.warn('[Storage] Fallback a subida local/mock.');
+      } catch (storageErr: any) {
+        storageWarningUF = storageErr?.message || 'Error de conexión con el almacenamiento.';
+        console.warn('[Storage] Error subiendo a Supabase:', storageWarningUF);
         finalUrl = URL.createObjectURL(file);
       }
 
@@ -963,6 +985,7 @@ export function DocumentsClient() {
           updated_at: new Date().toISOString()
         };
 
+        let dbWarningUF = '';
         try {
           const res = await saveDocument({
             agency_id: newDoc.agency_id,
@@ -979,8 +1002,9 @@ export function DocumentsClient() {
           });
           if (!res.success) throw new Error(res.error);
           newDoc.id = res.data.id;
-        } catch (dbErr) {
-          console.warn('[DB] Fallback local para guardar el documento.');
+        } catch (dbErr: any) {
+          dbWarningUF = dbErr?.message || 'Error al guardar el registro en base de datos.';
+          console.warn('[DB] Error guardando documento en Supabase:', dbWarningUF);
         }
 
         setLocalDocs(prev => {
@@ -989,7 +1013,15 @@ export function DocumentsClient() {
           return updated;
         });
         setUploading(false);
-        modal.showSuccess('Éxito', 'Documento cargado correctamente.');
+        if (storageWarningUF || dbWarningUF) {
+          modal.showWarning('Documento guardado localmente', 
+            `El documento se ha guardado en el navegador pero no se ha podido sincronizar con el servidor.\n\n` +
+            (storageWarningUF ? `• Almacenamiento: ${storageWarningUF}\n` : '') +
+            (dbWarningUF ? `• Base de datos: ${dbWarningUF}` : '') +
+            `\n\nPuedes ver el documento en la lista, pero no estará disponible hasta que se solucione la conexión.`);
+        } else {
+          modal.showSuccess('Éxito', 'Documento cargado correctamente en Supabase.');
+        }
       }
     } catch (err: any) {
       console.error('Error uploading doc:', err);

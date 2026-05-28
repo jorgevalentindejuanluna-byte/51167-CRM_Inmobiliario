@@ -148,3 +148,24 @@ export async function deleteDocument(docId: string) {
     return { success: false, error: err.message };
   }
 }
+
+export async function getDocuments(filters?: Record<string, string>) {
+  try {
+    let query = supabaseServer.from('documents').select('*');
+
+    if (filters) {
+      for (const [key, value] of Object.entries(filters)) {
+        if (value) query = query.eq(key, value);
+      }
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+
+    if (error) throw new Error(error.message);
+
+    return { success: true, data };
+  } catch (err: any) {
+    console.error('getDocuments action failed:', err);
+    return { success: false, error: err.message, data: [] };
+  }
+}

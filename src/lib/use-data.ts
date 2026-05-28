@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabaseSelect } from './supabase';
 import { useAuth } from './auth-context';
+import { getDocuments } from '@/app/actions/documents';
 import type { Lead, Property, Operation, User, CRMDocument, CRMSignature, Agent, AgentActivity, AgentPropertyAssignment, AgentClientAssignment, AgentCommission, EmailThread, EmailMessage, EmailFolder } from './models/types';
 import { toUUID, MOCK_LEADS, MOCK_PROPERTIES, MOCK_OPERATIONS, MOCK_USERS, MOCK_DOCUMENTS } from './mock-data';
 
@@ -133,7 +134,7 @@ export function useUsers(): DataState<User[]> {
   return state;
 }
 
-// ── Hook para Documentos (Regla 6) ──
+// ── Hook para Documentos (Regla 6) — Via server action para saltar RLS ──
 export function useDocuments(filters: { lead_id?: string; operation_id?: string; property_id?: string } = {}): DataState<CRMDocument[]> {
   const { token } = useAuth();
   const [state, setState] = useState<DataState<CRMDocument[]>>({
@@ -145,37 +146,24 @@ export function useDocuments(filters: { lead_id?: string; operation_id?: string;
 
   useEffect(() => {
     let cancelled = false;
-    const filterObj: Record<string, string> = {};
-    if (filters.lead_id) {
-      const sanitized = sanitizeUUID(filters.lead_id);
-      if (sanitized) filterObj.lead_id = sanitized;
-    }
-    if (filters.operation_id) {
-      const sanitized = sanitizeUUID(filters.operation_id);
-      if (sanitized) filterObj.operation_id = sanitized;
-    }
-    if (filters.property_id) {
-      const sanitized = sanitizeUUID(filters.property_id);
-      if (sanitized) filterObj.property_id = sanitized;
-    }
 
-    fetchFromSupabase<CRMDocument[]>('documents', [], { 
-      token,
-      filter: filterObj,
-      order: { column: 'created_at', ascending: false }
-    }).then(({ data }) => {
-      if (!cancelled) {
-        if (data.length > 0) {
-          setState({ data, loading: false, error: null, source: 'supabase' });
-        } else {
-          const filtered = MOCK_DOCUMENTS.filter(d => {
-            if (filters.lead_id && d.lead_id !== filters.lead_id) return false;
-            if (filters.operation_id && d.operation_id !== filters.operation_id) return false;
-            if (filters.property_id && d.property_id !== filters.property_id) return false;
-            return true;
-          });
-          setState({ data: filtered, loading: false, error: null, source: 'mock' });
-        }
+    const filterObj: Record<string, string> = {};
+    if (filters.lead_id) filterObj.lead_id = filters.lead_id;
+    if (filters.operation_id) filterObj.operation_id = filters.operation_id;
+    if (filters.property_id) filterObj.property_id = filters.property_id;
+
+    getDocuments(Object.keys(filterObj).length > 0 ? filterObj : undefined).then(({ data }) => {
+      if (cancelled) return;
+      if (data && data.length > 0) {
+        setState({ data: data as unknown as CRMDocument[], loading: false, error: null, source: 'supabase' });
+      } else {
+        const filtered = MOCK_DOCUMENTS.filter(d => {
+          if (filters.lead_id && d.lead_id !== filters.lead_id) return false;
+          if (filters.operation_id && d.operation_id !== filters.operation_id) return false;
+          if (filters.property_id && d.property_id !== filters.property_id) return false;
+          return true;
+        });
+        setState({ data: filtered, loading: false, error: null, source: 'mock' });
       }
     });
     return () => { cancelled = true; };

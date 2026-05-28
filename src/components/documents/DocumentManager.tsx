@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useDocuments } from '@/lib/use-data';
 import { supabaseUploadFile } from '@/lib/supabase';
 import { useDocumentViewer } from '@/lib/document-viewer-context';
-import { getSignedUrlIfExists, saveDocument, updateDocument } from '@/app/actions/documents';
+import { getSignedUrlIfExists, saveDocument, updateDocument, deleteDocument } from '@/app/actions/documents';
 import type { CRMDocument } from '@/lib/models/types';
 import { toUUID } from '@/lib/mock-data';
 import styles from './DocumentManager.module.css';
@@ -38,6 +38,9 @@ export default function DocumentManager({ leadId, operationId, propertyId, agenc
   const [showOcrModal, setShowOcrModal] = useState(false);
   const [pendingDoc, setPendingDoc] = useState<any>(null);
   const [selectedDocDetails, setSelectedDocDetails] = useState<CRMDocument | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [docToDelete, setDocToDelete] = useState<CRMDocument | null>(null);
   const viewer = useDocumentViewer();
 
   const simulateOCR = (fileName: string, fileSize: number): Promise<any> => {
@@ -285,6 +288,25 @@ export default function DocumentManager({ leadId, operationId, propertyId, agenc
     document.body.removeChild(a);
   };
 
+  const handleConfirmDelete = async () => {
+    if (!docToDelete || deleteConfirmText !== 'eliminar este documento') return;
+    try {
+      await deleteDocument(docToDelete.id);
+      setShowDeleteModal(false);
+      setDocToDelete(null);
+      setDeleteConfirmText('');
+      window.location.reload();
+    } catch (err: any) {
+      setError(err.message || 'Error al eliminar el documento');
+    }
+  };
+
+  const openDeleteModal = (doc: CRMDocument) => {
+    setDocToDelete(doc);
+    setDeleteConfirmText('');
+    setShowDeleteModal(true);
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -421,6 +443,9 @@ export default function DocumentManager({ leadId, operationId, propertyId, agenc
                         )}
                         <button className={styles.actionBtn} onClick={() => openDocDetails(doc)} title="Detalles e Historial">
                           <span className="material-symbols-outlined">info</span>
+                        </button>
+                        <button className={styles.actionBtn} onClick={() => openDeleteModal(doc)} title="Eliminar Documento" style={{ color: 'var(--color-error)' }}>
+                          <span className="material-symbols-outlined">delete</span>
                         </button>
                       </div>
                     </td>
@@ -559,6 +584,53 @@ export default function DocumentManager({ leadId, operationId, propertyId, agenc
             <div className={styles.modalFooter}>
               <button className="btn btn--primary btn--sm" onClick={() => setSelectedDocDetails(null)}>
                 Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal confirmación de eliminación */}
+      {showDeleteModal && docToDelete && (
+        <div className={styles.modalOverlay} onClick={() => { setShowDeleteModal(false); setDocToDelete(null); }}>
+          <div className={styles.modalContent} style={{ maxWidth: 480, animation: 'none' }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-error)', marginBottom: '1rem' }}>
+              <span className="material-symbols-outlined">warning</span>
+              Eliminar Documento
+            </h3>
+            <p style={{ marginBottom: '0.75rem', color: 'var(--color-on-surface-variant)' }}>
+              Vas a eliminar permanentemente el documento:
+            </p>
+            <p style={{ fontWeight: 700, marginBottom: '1.25rem', color: 'var(--color-on-surface)' }}>
+              {docToDelete.name}
+            </p>
+            <p style={{ marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--color-on-surface-variant)' }}>
+              Para confirmar, escribe <strong style={{ color: 'var(--color-error)' }}>eliminar este documento</strong>:
+            </p>
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={e => setDeleteConfirmText(e.target.value)}
+              placeholder="eliminar este documento"
+              style={{
+                width: '100%', padding: '0.625rem 0.75rem', borderRadius: 8,
+                border: '1px solid var(--color-outline)', fontSize: '0.9rem',
+                marginBottom: '1.25rem'
+              }}
+              autoFocus
+            />
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button className="btn btn--ghost btn--sm" onClick={() => { setShowDeleteModal(false); setDocToDelete(null); }}>
+                Cancelar
+              </button>
+              <button
+                className="btn btn--danger btn--sm"
+                onClick={handleConfirmDelete}
+                disabled={deleteConfirmText !== 'eliminar este documento'}
+                style={{ opacity: deleteConfirmText === 'eliminar este documento' ? 1 : 0.5 }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18, marginRight: 4 }}>delete</span>
+                Eliminar
               </button>
             </div>
           </div>

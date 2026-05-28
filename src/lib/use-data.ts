@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabaseSelect } from './supabase';
 import { useAuth } from './auth-context';
 import type { Lead, Property, Operation, User, CRMDocument, CRMSignature, Agent, AgentActivity, AgentPropertyAssignment, AgentClientAssignment, AgentCommission, EmailThread, EmailMessage, EmailFolder } from './models/types';
-import { toUUID, MOCK_DOCUMENTS } from './mock-data';
+import { toUUID, MOCK_LEADS, MOCK_PROPERTIES, MOCK_OPERATIONS, MOCK_USERS, MOCK_DOCUMENTS } from './mock-data';
 
 interface DataState<T> {
   data: T;
@@ -55,7 +55,7 @@ export function useLeads(): DataState<Lead[]> {
       order: { column: 'score', ascending: false },
     }).then(({ data }) => {
       if (!cancelled) {
-        setState({ data, loading: false, error: null, source: 'supabase' });
+        setState({ data: data.length > 0 ? data : MOCK_LEADS, loading: false, error: null, source: data.length > 0 ? 'supabase' : 'mock' });
       }
     });
     return () => { cancelled = true; };
@@ -78,7 +78,7 @@ export function useProperties(): DataState<Property[]> {
     let cancelled = false;
     fetchFromSupabase<Property[]>('properties', [], { token }).then(({ data }) => {
       if (!cancelled) {
-        setState({ data, loading: false, error: null, source: 'supabase' });
+        setState({ data: data.length > 0 ? data : MOCK_PROPERTIES, loading: false, error: null, source: data.length > 0 ? 'supabase' : 'mock' });
       }
     });
     return () => { cancelled = true; };
@@ -101,7 +101,7 @@ export function useOperations(): DataState<Operation[]> {
     let cancelled = false;
     fetchFromSupabase<Operation[]>('operations', [], { token }).then(({ data }) => {
       if (!cancelled) {
-        setState({ data, loading: false, error: null, source: 'supabase' });
+        setState({ data: data.length > 0 ? data : MOCK_OPERATIONS, loading: false, error: null, source: data.length > 0 ? 'supabase' : 'mock' });
       }
     });
     return () => { cancelled = true; };
@@ -124,7 +124,7 @@ export function useUsers(): DataState<User[]> {
     let cancelled = false;
     fetchFromSupabase<User[]>('users', [], { token }).then(({ data }) => {
       if (!cancelled) {
-        setState({ data, loading: false, error: null, source: 'supabase' });
+        setState({ data: data.length > 0 ? data : MOCK_USERS, loading: false, error: null, source: data.length > 0 ? 'supabase' : 'mock' });
       }
     });
     return () => { cancelled = true; };

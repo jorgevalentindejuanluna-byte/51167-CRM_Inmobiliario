@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabaseSelect } from './supabase';
 import { useAuth } from './auth-context';
-import { getDocuments } from '@/app/actions/documents';
+import { getTableData } from '@/app/actions/data';
 import type { Lead, Property, Operation, User, CRMDocument, CRMSignature, Agent, AgentActivity, AgentPropertyAssignment, AgentClientAssignment, AgentCommission, EmailThread, EmailMessage, EmailFolder } from './models/types';
 import { toUUID, MOCK_LEADS, MOCK_PROPERTIES, MOCK_OPERATIONS, MOCK_USERS, MOCK_DOCUMENTS } from './mock-data';
 
@@ -14,50 +13,18 @@ interface DataState<T> {
   source: 'supabase' | 'mock';
 }
 
-/** Sanitizar IDs de mock a UUIDs reales antes de consultar a Supabase */
-function sanitizeUUID(id: string | undefined): string | undefined {
-  if (!id) return undefined;
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (uuidRegex.test(id)) {
-    return id;
-  }
-  return toUUID(id) || id;
-}
-
-/** Cargar datos reales de Supabase sin fallbacks a mocks */
-async function fetchFromSupabase<T>(
-  table: string,
-  fallback: T,
-  options?: any
-): Promise<{ data: T; source: 'supabase' }> {
-  try {
-    const result = await supabaseSelect<T extends (infer U)[] ? U : never>(table, options);
-    return { data: (result || []) as unknown as T, source: 'supabase' };
-  } catch (error) {
-    console.error(`[Data] Error fetching from table '${table}':`, error);
-    return { data: fallback, source: 'supabase' };
-  }
-}
-
-// ── Hook para Leads ──
+// ── Hook para Leads — Via server action (Service Key) ──
 export function useLeads(): DataState<Lead[]> {
   const { token } = useAuth();
   const [state, setState] = useState<DataState<Lead[]>>({
-    data: [],
-    loading: true,
-    error: null,
-    source: 'supabase',
+    data: [], loading: true, error: null, source: 'supabase',
   });
 
   useEffect(() => {
     let cancelled = false;
-    fetchFromSupabase<Lead[]>('leads', [], {
-      token,
-      order: { column: 'score', ascending: false },
-    }).then(({ data }) => {
-      if (!cancelled) {
-        setState({ data: data.length > 0 ? data : MOCK_LEADS, loading: false, error: null, source: data.length > 0 ? 'supabase' : 'mock' });
-      }
+    getTableData('leads', { order: { column: 'score', ascending: false } }).then(({ data }) => {
+      if (cancelled) return;
+      setState({ data: data?.length > 0 ? data as unknown as Lead[] : MOCK_LEADS, loading: false, error: null, source: data?.length > 0 ? 'supabase' : 'mock' });
     });
     return () => { cancelled = true; };
   }, [token]);
@@ -65,22 +32,18 @@ export function useLeads(): DataState<Lead[]> {
   return state;
 }
 
-// ── Hook para Propiedades ──
+// ── Hook para Propiedades — Via server action (Service Key) ──
 export function useProperties(): DataState<Property[]> {
   const { token } = useAuth();
   const [state, setState] = useState<DataState<Property[]>>({
-    data: [],
-    loading: true,
-    error: null,
-    source: 'supabase',
+    data: [], loading: true, error: null, source: 'supabase',
   });
 
   useEffect(() => {
     let cancelled = false;
-    fetchFromSupabase<Property[]>('properties', [], { token }).then(({ data }) => {
-      if (!cancelled) {
-        setState({ data: data.length > 0 ? data : MOCK_PROPERTIES, loading: false, error: null, source: data.length > 0 ? 'supabase' : 'mock' });
-      }
+    getTableData('properties', { order: { column: 'created_at', ascending: false } }).then(({ data }) => {
+      if (cancelled) return;
+      setState({ data: data?.length > 0 ? data as unknown as Property[] : MOCK_PROPERTIES, loading: false, error: null, source: data?.length > 0 ? 'supabase' : 'mock' });
     });
     return () => { cancelled = true; };
   }, [token]);
@@ -88,22 +51,18 @@ export function useProperties(): DataState<Property[]> {
   return state;
 }
 
-// ── Hook para Operaciones ──
+// ── Hook para Operaciones — Via server action (Service Key) ──
 export function useOperations(): DataState<Operation[]> {
   const { token } = useAuth();
   const [state, setState] = useState<DataState<Operation[]>>({
-    data: [],
-    loading: true,
-    error: null,
-    source: 'supabase',
+    data: [], loading: true, error: null, source: 'supabase',
   });
 
   useEffect(() => {
     let cancelled = false;
-    fetchFromSupabase<Operation[]>('operations', [], { token }).then(({ data }) => {
-      if (!cancelled) {
-        setState({ data: data.length > 0 ? data : MOCK_OPERATIONS, loading: false, error: null, source: data.length > 0 ? 'supabase' : 'mock' });
-      }
+    getTableData('operations', { order: { column: 'created_at', ascending: false } }).then(({ data }) => {
+      if (cancelled) return;
+      setState({ data: data?.length > 0 ? data as unknown as Operation[] : MOCK_OPERATIONS, loading: false, error: null, source: data?.length > 0 ? 'supabase' : 'mock' });
     });
     return () => { cancelled = true; };
   }, [token]);
@@ -111,22 +70,18 @@ export function useOperations(): DataState<Operation[]> {
   return state;
 }
 
-// ── Hook para Usuarios ──
+// ── Hook para Usuarios — Via server action (Service Key) ──
 export function useUsers(): DataState<User[]> {
   const { token } = useAuth();
   const [state, setState] = useState<DataState<User[]>>({
-    data: [],
-    loading: true,
-    error: null,
-    source: 'supabase',
+    data: [], loading: true, error: null, source: 'supabase',
   });
 
   useEffect(() => {
     let cancelled = false;
-    fetchFromSupabase<User[]>('users', [], { token }).then(({ data }) => {
-      if (!cancelled) {
-        setState({ data: data.length > 0 ? data : MOCK_USERS, loading: false, error: null, source: data.length > 0 ? 'supabase' : 'mock' });
-      }
+    getTableData('users').then(({ data }) => {
+      if (cancelled) return;
+      setState({ data: data?.length > 0 ? data as unknown as User[] : MOCK_USERS, loading: false, error: null, source: data?.length > 0 ? 'supabase' : 'mock' });
     });
     return () => { cancelled = true; };
   }, [token]);
@@ -134,25 +89,21 @@ export function useUsers(): DataState<User[]> {
   return state;
 }
 
-// ── Hook para Documentos (Regla 6) — Via server action para saltar RLS ──
+// ── Hook para Documentos (Regla 6) — Via server action (Service Key) ──
 export function useDocuments(filters: { lead_id?: string; operation_id?: string; property_id?: string } = {}): DataState<CRMDocument[]> {
   const { token } = useAuth();
   const [state, setState] = useState<DataState<CRMDocument[]>>({
-    data: [],
-    loading: true,
-    error: null,
-    source: 'supabase',
+    data: [], loading: true, error: null, source: 'supabase',
   });
 
   useEffect(() => {
     let cancelled = false;
-
     const filterObj: Record<string, string> = {};
     if (filters.lead_id) filterObj.lead_id = filters.lead_id;
     if (filters.operation_id) filterObj.operation_id = filters.operation_id;
     if (filters.property_id) filterObj.property_id = filters.property_id;
 
-    getDocuments(Object.keys(filterObj).length > 0 ? filterObj : undefined).then(({ data }) => {
+    getTableData('documents', { filters: Object.keys(filterObj).length > 0 ? filterObj : undefined, order: { column: 'created_at', ascending: false } }).then(({ data }) => {
       if (cancelled) return;
       if (data && data.length > 0) {
         setState({ data: data as unknown as CRMDocument[], loading: false, error: null, source: 'supabase' });
@@ -186,26 +137,20 @@ export function useEmailThreadMessages(threadId: string | undefined): DataState<
 export function useSignatures(operationId: string): DataState<CRMSignature[]> {
   const { token } = useAuth();
   const [state, setState] = useState<DataState<CRMSignature[]>>({
-    data: [],
-    loading: true,
-    error: null,
-    source: 'supabase',
+    data: [], loading: true, error: null, source: 'supabase',
   });
 
   useEffect(() => {
     if (!operationId) return;
     let cancelled = false;
-    
-    const sanitizedOpId = sanitizeUUID(operationId);
-    
-    fetchFromSupabase<CRMSignature[]>('signatures', [], { 
-      token,
-      filter: sanitizedOpId ? { operation_id: sanitizedOpId } : {},
+    const opId = toUUID(operationId) || operationId;
+
+    getTableData('signatures', {
+      filters: { operation_id: opId },
       order: { column: 'created_at', ascending: false }
     }).then(({ data }) => {
-      if (!cancelled) {
-        setState({ data, loading: false, error: null, source: 'supabase' });
-      }
+      if (cancelled) return;
+      setState({ data: (data || []) as unknown as CRMSignature[], loading: false, error: null, source: 'supabase' });
     });
     return () => { cancelled = true; };
   }, [token, operationId]);
@@ -217,19 +162,14 @@ export function useSignatures(operationId: string): DataState<CRMSignature[]> {
 export function useAgents(): DataState<Agent[]> {
   const { token } = useAuth();
   const [state, setState] = useState<DataState<Agent[]>>({
-    data: [],
-    loading: true,
-    error: null,
-    source: 'supabase',
+    data: [], loading: true, error: null, source: 'supabase',
   });
 
   useEffect(() => {
     let cancelled = false;
-    fetchFromSupabase<Agent[]>('agents', [], {
-      token,
-      order: { column: 'nombre', ascending: true }
-    }).then(({ data }) => {
-      if (!cancelled) setState({ data, loading: false, error: null, source: 'supabase' });
+    getTableData('agents', { order: { column: 'nombre', ascending: true } }).then(({ data }) => {
+      if (cancelled) return;
+      setState({ data: (data || []) as unknown as Agent[], loading: false, error: null, source: 'supabase' });
     });
     return () => { cancelled = true; };
   }, [token]);
@@ -241,23 +181,18 @@ export function useAgents(): DataState<Agent[]> {
 export function useAgentActivities(agentId: string): DataState<AgentActivity[]> {
   const { token } = useAuth();
   const [state, setState] = useState<DataState<AgentActivity[]>>({
-    data: [],
-    loading: true,
-    error: null,
-    source: 'supabase',
+    data: [], loading: true, error: null, source: 'supabase',
   });
 
   useEffect(() => {
     if (!agentId) return;
     let cancelled = false;
-    fetchFromSupabase<AgentActivity[]>('agent_activity', [], {
-      token,
-      filter: { agent_id: agentId },
+    getTableData('agent_activity', {
+      filters: { agent_id: agentId },
       order: { column: 'fecha', ascending: false }
     }).then(({ data }) => {
-      if (!cancelled) {
-        setState({ data, loading: false, error: null, source: 'supabase' });
-      }
+      if (cancelled) return;
+      setState({ data: (data || []) as unknown as AgentActivity[], loading: false, error: null, source: 'supabase' });
     });
     return () => { cancelled = true; };
   }, [token, agentId]);
@@ -265,24 +200,21 @@ export function useAgentActivities(agentId: string): DataState<AgentActivity[]> 
   return state;
 }
 
-// ── Hook para propiedades asignadas (Tabla real agent_property_assignments) ──
+// ── Hook para propiedades asignadas ──
 export function useAgentProperties(agentId: string): DataState<AgentPropertyAssignment[]> {
   const { token } = useAuth();
   const [state, setState] = useState<DataState<AgentPropertyAssignment[]>>({
-    data: [],
-    loading: true,
-    error: null,
-    source: 'supabase',
+    data: [], loading: true, error: null, source: 'supabase',
   });
 
   useEffect(() => {
     if (!agentId) return;
     let cancelled = false;
-    fetchFromSupabase<AgentPropertyAssignment[]>('agent_property_assignments', [], {
-      token,
-      filter: { agent_id: agentId, activo: true }
+    getTableData('agent_property_assignments', {
+      filters: { agent_id: agentId, activo: 'true' }
     }).then(({ data }) => {
-      if (!cancelled) setState({ data, loading: false, error: null, source: 'supabase' });
+      if (cancelled) return;
+      setState({ data: (data || []) as unknown as AgentPropertyAssignment[], loading: false, error: null, source: 'supabase' });
     });
     return () => { cancelled = true; };
   }, [token, agentId]);
@@ -290,24 +222,21 @@ export function useAgentProperties(agentId: string): DataState<AgentPropertyAssi
   return state;
 }
 
-// ── Hook para clientes asignados (Tabla real agent_client_assignments) ──
+// ── Hook para clientes asignados ──
 export function useAgentClients(agentId: string): DataState<AgentClientAssignment[]> {
   const { token } = useAuth();
   const [state, setState] = useState<DataState<AgentClientAssignment[]>>({
-    data: [],
-    loading: true,
-    error: null,
-    source: 'supabase',
+    data: [], loading: true, error: null, source: 'supabase',
   });
 
   useEffect(() => {
     if (!agentId) return;
     let cancelled = false;
-    fetchFromSupabase<AgentClientAssignment[]>('agent_client_assignments', [], {
-      token,
-      filter: { agent_id: agentId, activo: true }
+    getTableData('agent_client_assignments', {
+      filters: { agent_id: agentId, activo: 'true' }
     }).then(({ data }) => {
-      if (!cancelled) setState({ data, loading: false, error: null, source: 'supabase' });
+      if (cancelled) return;
+      setState({ data: (data || []) as unknown as AgentClientAssignment[], loading: false, error: null, source: 'supabase' });
     });
     return () => { cancelled = true; };
   }, [token, agentId]);
@@ -315,25 +244,22 @@ export function useAgentClients(agentId: string): DataState<AgentClientAssignmen
   return state;
 }
 
-// ── Hook para comisiones (Tabla real agent_commissions) ──
+// ── Hook para comisiones ──
 export function useAgentCommissions(agentId: string): DataState<AgentCommission[]> {
   const { token } = useAuth();
   const [state, setState] = useState<DataState<AgentCommission[]>>({
-    data: [],
-    loading: true,
-    error: null,
-    source: 'supabase',
+    data: [], loading: true, error: null, source: 'supabase',
   });
 
   useEffect(() => {
     if (!agentId) return;
     let cancelled = false;
-    fetchFromSupabase<AgentCommission[]>('agent_commissions', [], {
-      token,
-      filter: { agent_id: agentId },
+    getTableData('agent_commissions', {
+      filters: { agent_id: agentId },
       order: { column: 'fecha_generacion', ascending: false }
     }).then(({ data }) => {
-      if (!cancelled) setState({ data, loading: false, error: null, source: 'supabase' });
+      if (cancelled) return;
+      setState({ data: (data || []) as unknown as AgentCommission[], loading: false, error: null, source: 'supabase' });
     });
     return () => { cancelled = true; };
   }, [token, agentId]);
@@ -341,7 +267,7 @@ export function useAgentCommissions(agentId: string): DataState<AgentCommission[
   return state;
 }
 
-// ── KPIs para dashboard calculados dinámicamente con datos reales de Supabase ──
+// ── KPIs para dashboard ──
 export function useDashboardKpis() {
   const { data: leads } = useLeads();
   const { data: properties } = useProperties();
@@ -369,18 +295,16 @@ export function useDashboardKpis() {
   return { data: kpis, loading: false, source: 'supabase' as const };
 }
 
-// ── Actividad reciente real mediante logs de auditoría ──
+// ── Actividad reciente ──
 export function useActivity(): { data: any[]; loading: boolean; source: 'supabase' } {
   const { token } = useAuth();
   const [state, setState] = useState<{ data: any[]; loading: boolean; source: 'supabase' }>({ data: [], loading: true, source: 'supabase' });
 
   useEffect(() => {
-    supabaseSelect<any>('audit_logs', {
-      token: token ?? undefined,
-      limit: 10,
-      order: { column: 'created_at', ascending: false }
-    }).then(logs => {
-      const activities = (logs || []).map(log => ({
+    let cancelled = false;
+    getTableData('audit_logs', { limit: 10, order: { column: 'created_at', ascending: false } }).then(({ data }) => {
+      if (cancelled) return;
+      const activities = (data || []).map((log: any) => ({
         id: log.id,
         user_name: log.user_name || 'Sistema',
         action: log.accion || 'realizó una acción en',
@@ -390,8 +314,9 @@ export function useActivity(): { data: any[]; loading: boolean; source: 'supabas
       }));
       setState({ data: activities as any, loading: false, source: 'supabase' });
     }).catch(() => {
-      setState({ data: [], loading: false, source: 'supabase' });
+      if (!cancelled) setState({ data: [], loading: false, source: 'supabase' });
     });
+    return () => { cancelled = true; };
   }, [token]);
 
   return state;

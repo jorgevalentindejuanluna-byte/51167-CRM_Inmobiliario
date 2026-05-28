@@ -37,33 +37,10 @@ export function DocumentsClient() {
   // Estado local para documentos cargados y modificados dinámicamente
   const [localDocs, setLocalDocs] = useState<CRMDocument[]>([]);
 
-  // Cargar datos locales previos si existen, para no perderlos al recargar
+  // Sincronizar el estado local con los datos cargados desde Supabase
   useEffect(() => {
-    const cached = localStorage.getItem('local_documents');
-    if (cached) {
-      try {
-        setLocalDocs(JSON.parse(cached));
-      } catch (e) {
-        setLocalDocs([]);
-      }
-    }
-  }, []);
-
-  // Sincronizar el estado local con los datos cargados (sin perder docs locales)
-  useEffect(() => {
-    if (documents && documents.length > 0) {
-      setLocalDocs(prev => {
-        const prevMap = new Map(prev.map(d => [d.id, d]));
-        documents.forEach((d: CRMDocument) => {
-          const existing = prevMap.get(d.id);
-          if (!existing || JSON.stringify(existing.metadata) !== JSON.stringify(d.metadata) || existing.status !== d.status) {
-            prevMap.set(d.id, d);
-          }
-        });
-        const updated = Array.from(prevMap.values());
-        localStorage.setItem('local_documents', JSON.stringify(updated));
-        return updated;
-      });
+    if (documents) {
+      setLocalDocs(documents);
     }
   }, [documents]);
 
@@ -193,14 +170,7 @@ export function DocumentsClient() {
     a.click();
   };
 
-  // Persistir localDocs en localStorage cada vez que cambie
-  const prevDocsRef = useRef<CRMDocument[]>([]);
-  useEffect(() => {
-    if (localDocs.length > 0 && localDocs !== prevDocsRef.current) {
-      localStorage.setItem('local_documents', JSON.stringify(localDocs));
-      prevDocsRef.current = localDocs;
-    }
-  }, [localDocs]);
+  // No se persiste localDocs en localStorage para depender 100% de la BD.
 
   const handleDeleteDocument = async (docId: string) => {
     const doc = localDocs.find(d => d.id === docId);

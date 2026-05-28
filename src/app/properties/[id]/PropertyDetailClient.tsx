@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useProperties, useOperations, useUsers, saveLocalMock } from '@/lib/use-data';
+import { useProperties, useOperations, useUsers } from '@/lib/use-data';
 import { useAuth } from '@/lib/auth-context';
 import { updateProperty } from '@/app/actions/properties';
 import { toUUID } from '@/lib/mock-data';
@@ -320,10 +320,6 @@ export function PropertyDetailClient({ id }: { id: string }) {
                 // Optimistic update
                 setLocalPropertyOverride(updated);
                 setActiveTab('general');
-                
-                // Persist local F5
-                const newProps = allProperties.map(p => (p.id === propertyId || toUUID(p.id) === propertyId) ? updated : p);
-                saveLocalMock('properties', newProps);
                 
                 // Server Update
                 const res = await updateProperty(propertyId, updated, token ?? undefined);

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useLeads, useUsers, useProperties, saveLocalMock } from '@/lib/use-data';
+import { useLeads, useUsers, useProperties } from '@/lib/use-data';
 import { useAuth } from '@/lib/auth-context';
 import LeadDocumentChecklist from '@/components/leads/LeadDocumentChecklist';
 import { updateLead } from '@/app/actions/leads';
@@ -56,9 +56,6 @@ export function LeadDetailClient({ id }: { id: string }) {
     // Optimistic Update local
     Object.assign(lead, editedLead);
     setIsEditing(false);
-    
-    // Si estamos usando mocks (fallo de supabase), guardar en localstorage para persistir tras F5
-    saveLocalMock('leads', leads);
 
     // Call server action for persistence
     const res = await updateLead(lead.id, editedLead, token ?? undefined);

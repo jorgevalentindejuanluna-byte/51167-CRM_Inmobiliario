@@ -2,7 +2,6 @@
 
 import { supabaseSelect, supabaseInsert, supabaseUpdate } from '@/lib/supabase';
 import { sendEmailViaSmtp, getAgencySmtpConfig } from '@/lib/email-service';
-import { MOCK_EMAIL_MESSAGES, MOCK_EMAIL_THREADS, MOCK_EMAIL_ACCOUNTS } from '@/lib/mock-data';
 import type { EmailMessage, EmailThread, EmailAccount, EmailFolder, EmailFlag } from '@/lib/models/types';
 
 function generateId(): string {
@@ -82,75 +81,26 @@ export async function saveEmailAccount(
   }
 }
 
-// ── Threads ──
+// ── Threads (Retorna vacío ya que no hay tablas en BD) ──
 
 export async function getEmailThreads(folder?: EmailFolder, token?: string): Promise<{ success: boolean; error?: string; data?: EmailThread[] }> {
-  try {
-    try {
-      const result = await supabaseSelect<EmailThread>('email_threads', { token });
-      if (result && result.length > 0) {
-        let filtered = result;
-        if (folder) filtered = result.filter(t => t.folder === folder);
-        return { success: true, data: filtered };
-      }
-    } catch {
-    }
-    let threads = MOCK_EMAIL_THREADS;
-    if (folder) threads = threads.filter(t => t.folder === folder);
-    return { success: true, data: threads };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
+  return { success: true, data: [] };
 }
 
 export async function getEmailThread(threadId: string, _token?: string): Promise<{ success: boolean; error?: string; data?: { thread: EmailThread; messages: EmailMessage[] } }> {
-  try {
-    const thread = MOCK_EMAIL_THREADS.find(t => t.id === threadId);
-    const messages = MOCK_EMAIL_MESSAGES.filter(m => m.thread_id === threadId);
-    return { success: true, data: { thread: thread!, messages } };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
+  return { success: false, error: 'No se encontraron hilos de correo en la base de datos.' };
 }
 
 export async function markThreadAsRead(threadId: string, _token?: string): Promise<{ success: boolean; error?: string }> {
-  try {
-    const idx = MOCK_EMAIL_THREADS.findIndex(t => t.id === threadId);
-    if (idx !== -1) {
-      MOCK_EMAIL_THREADS[idx] = { ...MOCK_EMAIL_THREADS[idx], flags: MOCK_EMAIL_THREADS[idx].flags.filter(f => f !== 'unread') };
-    }
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
+  return { success: true };
 }
 
 export async function toggleThreadFlag(threadId: string, flag: EmailFlag, _token?: string): Promise<{ success: boolean; error?: string }> {
-  try {
-    const idx = MOCK_EMAIL_THREADS.findIndex(t => t.id === threadId);
-    if (idx !== -1) {
-      const has = MOCK_EMAIL_THREADS[idx].flags.includes(flag);
-      MOCK_EMAIL_THREADS[idx] = {
-        ...MOCK_EMAIL_THREADS[idx],
-        flags: has ? MOCK_EMAIL_THREADS[idx].flags.filter(f => f !== flag) : [...MOCK_EMAIL_THREADS[idx].flags, flag],
-      };
-    }
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
+  return { success: true };
 }
 
 export async function moveThreadToFolder(threadId: string, folder: EmailFolder, _token?: string): Promise<{ success: boolean; error?: string }> {
-  try {
-    const idx = MOCK_EMAIL_THREADS.findIndex(t => t.id === threadId);
-    if (idx !== -1) {
-      MOCK_EMAIL_THREADS[idx] = { ...MOCK_EMAIL_THREADS[idx], folder };
-    }
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
+  return { success: true };
 }
 
 // ── Messages ──
@@ -166,7 +116,7 @@ export async function sendEmail(data: {
   smtp_config?: { host: string; port: number; user: string; pass: string; fromName: string; fromEmail: string };
 }, token?: string): Promise<{ success: boolean; error?: string; data?: EmailMessage }> {
   try {
-    // 1. Try real SMTP sending
+    // 1. Enviar correo SMTP real
     const smtpResult = await sendEmailViaSmtp(
       {
         to: data.to,
@@ -178,7 +128,7 @@ export async function sendEmail(data: {
       data.smtp_config
     );
 
-    // 2. Create message record (always, even if SMTP fails, for audit trail)
+    // 2. Crear estructura del mensaje de retorno
     const msg: EmailMessage = {
       id: generateId(),
       agency_id: 'ag-001',
@@ -201,39 +151,17 @@ export async function sendEmail(data: {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
-    MOCK_EMAIL_MESSAGES.push(msg);
-
-    const thread: EmailThread = {
-      id: msg.thread_id!,
-      agency_id: 'ag-001',
-      subject: data.subject,
-      snippet: data.body_text.slice(0, 100),
-      last_message_at: msg.sent_at!,
-      message_count: 1,
-      participants: data.to.map(p => p.name).join(', '),
-      folder: 'sent',
-      flags: [],
-      is_deleted: false,
-      created_at: msg.created_at,
-      updated_at: msg.updated_at,
-    };
-    MOCK_EMAIL_THREADS.unshift(thread);
 
     if (!smtpResult.success) {
-      console.warn('[Email] SMTP send failed, message saved locally:', smtpResult.error);
+      return { success: false, error: smtpResult.error || 'Error al enviar por SMTP.' };
     }
 
-    return { success: smtpResult.success, data: msg };
+    return { success: true, data: msg };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
 }
 
 export async function syncEmail(_token?: string): Promise<{ success: boolean; error?: string }> {
-  try {
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
+  return { success: true };
 }

@@ -2,8 +2,8 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { useAgents, useAgentActivities, useAgentProperties, useAgentClients, useAgentCommissions } from '@/lib/use-data';
-import { toUUID, MOCK_PROPERTIES } from '@/lib/mock-data';
+import { useAgents, useAgentActivities, useAgentProperties, useAgentClients, useAgentCommissions, useProperties } from '@/lib/use-data';
+import { toUUID } from '@/lib/mock-data';
 import {
   AGENT_TYPE_LABELS, AGENT_STATUS_LABELS, AGENT_STATUS_COLORS, AGENT_RELACION_LABELS,
   ACTIVITY_TIPO_LABELS, ACTIVITY_TIPO_ICONS, ACTIVITY_PRIORIDAD_LABELS,
@@ -42,6 +42,7 @@ export default function AgentDetailClient({ id }: { id: string }) {
   const { data: properties } = useAgentProperties(id);
   const { data: clients } = useAgentClients(id);
   const { data: commissions } = useAgentCommissions(id);
+  const { data: allProperties } = useProperties();
 
   const agent = agents.find(a => a.id === id);
   const [activeTab, setActiveTab] = useState<Tab>('resumen');
@@ -60,7 +61,7 @@ export default function AgentDetailClient({ id }: { id: string }) {
   const [propSortField, setPropSortField] = useState('fecha_asignacion');
   const [propSortDir, setPropSortDir] = useState<'asc'|'desc'>('desc');
   const [selectedPropId, setSelectedPropId] = useState<string | null>(null);
-  const selectedProperty = selectedPropId ? MOCK_PROPERTIES.find(p => p.id === selectedPropId) : undefined;
+  const selectedProperty = selectedPropId ? allProperties.find(p => p.id === selectedPropId || toUUID(p.id) === selectedPropId) : undefined;
 
   // ── Filters: Clientes ──
   const [cliSearch, setCliSearch] = useState('');

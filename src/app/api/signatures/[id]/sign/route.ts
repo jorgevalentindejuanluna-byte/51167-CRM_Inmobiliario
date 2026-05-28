@@ -161,8 +161,15 @@ export async function POST(
     let signedPdfBytesFinal: Uint8Array | undefined;
     try {
       let pdfDoc: PDFDocument;
-      if (docRecord?.url && docRecord.url.startsWith('http')) {
-        const originalPdfBytes = await fetch(docRecord.url).then(r => r.arrayBuffer());
+      let pdfUrl = docRecord?.url || '';
+      if (pdfUrl && !pdfUrl.startsWith('http')) {
+        const { data: signedUrlData } = await supabase.storage
+          .from('documents')
+          .createSignedUrl(pdfUrl, 3600);
+        if (signedUrlData) pdfUrl = signedUrlData.signedUrl;
+      }
+      if (pdfUrl && pdfUrl.startsWith('http')) {
+        const originalPdfBytes = await fetch(pdfUrl).then(r => r.arrayBuffer());
         pdfDoc = await PDFDocument.load(originalPdfBytes);
       } else {
         pdfDoc = await PDFDocument.create();
